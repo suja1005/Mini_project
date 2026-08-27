@@ -1,0 +1,43 @@
+{
+  "technical_skills": [
+    "Python",
+    "Java",
+    "C",
+    "C++",
+    "JavaScript",
+    "HTML",
+    "CSS",
+    "SQL",
+    "Git",
+    "Machine Learning",
+    "Data Analysis",
+    "Cloud",
+    "Cybersecurity",
+    "UI/UX",
+    "Mathematics"
+  ],
+  "proficiency_mapping": {
+    "Beginner": 30,
+    "Intermediate": 60,
+    "Advanced": 85
+  },
+  "soft_skills": [
+    "Communication",
+    "Teamwork",
+    "Leadership",
+    "Problem Solving",
+    "Adaptability",
+    "Time Management",
+    "Critical Thinking"
+  ],
+  "interests": [
+    "Artificial Intelligence",
+    "Data Science",
+    "Software Development",
+    "Cloud Computing",
+    "Cybersecurity",
+    "UI/UX",
+    "Business",
+    "Research"
+  ]
+}
