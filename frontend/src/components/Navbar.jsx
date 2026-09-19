@@ -13,7 +13,7 @@ const Navbar = () => {
           <Sparkles className="w-5 h-5 text-white" />
         </div>
         <Link to="/dashboard" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-indigo-300">
-          CareerAI <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Phase 1</span>
+          CareerAI <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Phase 2</span>
         </Link>
       </div>
 

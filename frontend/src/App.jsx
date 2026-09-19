@@ -9,6 +9,9 @@ import Onboarding from './pages/Onboarding';
 import Assessment from './pages/Assessment';
 import Recommendations from './pages/Recommendations';
 import CareerDetail from './pages/CareerDetail';
+import Evidence from './pages/Evidence';
+import Roadmap from './pages/Roadmap';
+import Progress from './pages/Progress';
 
 const RootRedirect = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -32,6 +35,9 @@ function App() {
           <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
           <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
           <Route path="/career/:careerId" element={<ProtectedRoute><CareerDetail /></ProtectedRoute>} />
+          <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
+          <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+          <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
 
           {/* Root and Catch-all Redirects */}
           <Route path="/" element={<RootRedirect />} />

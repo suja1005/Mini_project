@@ -151,39 +151,73 @@ const CareerDetail = () => {
         </div>
       </div>
 
-      {/* Architecture Placeholders for Future Modules */}
+      {/* Phase 2 Enhancement Modules Actions */}
       <div className="glass-card p-6 rounded-3xl border border-slate-800 space-y-4">
-        <h3 className="text-base font-bold text-slate-300">Upcoming System Modules (Phases 2 & 3)</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white flex items-center space-x-2">
+            <span>Evidence-Based Employability Enhancement</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Phase 2 Active
+            </span>
+          </h3>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 space-y-2 opacity-75">
-            <div className="flex items-center space-x-2 text-slate-400 font-semibold">
-              <ShieldCheck className="w-4 h-4 text-slate-500" />
-              <span>Feature 4: Evidence Engine</span>
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center space-x-2 text-indigo-400 font-semibold">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Feature 4: Evidence Engine</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                Empirically verify your self-declared skills using assessment benchmarks and project artifacts.
+              </p>
             </div>
-            <p className="text-slate-500">
-              Evidence verification will be available in the next phase.
-            </p>
+            <Link
+              to="/evidence"
+              className="w-full py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/30 flex items-center justify-center space-x-1.5 transition-all"
+            >
+              <span>Verify Your Skills</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 space-y-2 opacity-75">
-            <div className="flex items-center space-x-2 text-slate-400 font-semibold">
-              <Map className="w-4 h-4 text-slate-500" />
-              <span>Feature 5: Adaptive Roadmap</span>
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center space-x-2 text-emerald-400 font-semibold">
+                <Map className="w-4 h-4" />
+                <span>Feature 5: Adaptive Roadmap</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                Generate and execute your personalized roadmap with prioritized tasks tailored to your skill gaps.
+              </p>
             </div>
-            <p className="text-slate-500">
-              Personalized roadmap will be generated after skill-gap verification.
-            </p>
+            <Link
+              to="/roadmap"
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20 transition-all"
+            >
+              <span>View Personalized Roadmap</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 space-y-2 opacity-75">
-            <div className="flex items-center space-x-2 text-slate-400 font-semibold">
-              <BarChart3 className="w-4 h-4 text-slate-500" />
-              <span>Feature 6: Progress Tracker</span>
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center space-x-2 text-cyan-400 font-semibold">
+                <BarChart3 className="w-4 h-4" />
+                <span>Feature 6: Progress Tracker</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                Monitor your employability score growth trajectory and skill progression timeline.
+              </p>
             </div>
-            <p className="text-slate-500">
-              Employability progress tracking will become available after roadmap activities are completed.
-            </p>
+            <Link
+              to="/progress"
+              className="w-full py-2.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 font-bold border border-cyan-500/30 flex items-center justify-center space-x-1.5 transition-all"
+            >
+              <span>Track Progress</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
       </div>

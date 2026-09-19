@@ -6,6 +6,9 @@ from app.api.skills import router as skills_router
 from app.api.assessment import router as assessment_router
 from app.api.recommendations import router as recommendation_router
 from app.api.career_analysis import router as career_analysis_router
+from app.api.evidence import router as evidence_router
+from app.api.roadmap import router as roadmap_router
+from app.api.progress import router as progress_router
 
 api_router = APIRouter()
 
@@ -16,3 +19,6 @@ api_router.include_router(skills_router)
 api_router.include_router(assessment_router)
 api_router.include_router(recommendation_router)
 api_router.include_router(career_analysis_router)
+api_router.include_router(evidence_router)
+api_router.include_router(roadmap_router)
+api_router.include_router(progress_router)

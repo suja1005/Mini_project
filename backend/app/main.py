@@ -15,6 +15,9 @@ from app.api.skills import router as skills_router
 from app.api.assessment import router as assessment_router
 from app.api.recommendations import router as recommendation_router
 from app.api.career_analysis import router as career_analysis_router
+from app.api.evidence import router as evidence_router
+from app.api.roadmap import router as roadmap_router
+from app.api.progress import router as progress_router
 from app.database.connection import connect_to_mongo, close_mongo_connection
 
 @asynccontextmanager
@@ -29,7 +32,7 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     description="Backend API for AI-Powered Career Guidance and Employability Enhancement Platform",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -50,6 +53,9 @@ app.include_router(skills_router, prefix=settings.API_V1_STR)
 app.include_router(assessment_router, prefix=settings.API_V1_STR)
 app.include_router(recommendation_router, prefix=settings.API_V1_STR)
 app.include_router(career_analysis_router, prefix=settings.API_V1_STR)
+app.include_router(evidence_router, prefix=settings.API_V1_STR)
+app.include_router(roadmap_router, prefix=settings.API_V1_STR)
+app.include_router(progress_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():

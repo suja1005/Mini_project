@@ -53,23 +53,23 @@ const Sidebar = () => {
 
         <div>
           <div className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center justify-between">
-            <span>Future Modules</span>
-            <Lock className="w-3 h-3 text-slate-600" />
+            <span>Enhancement Modules</span>
+            <span className="text-[10px] text-emerald-400 font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">Phase 2</span>
           </div>
-          <div className="space-y-1 opacity-60">
-            <div className="flex items-center space-x-3 px-4 py-2.5 text-slate-500 text-sm cursor-not-allowed">
-              <ShieldCheck className="w-4 h-4 text-slate-600" />
+          <nav className="space-y-1">
+            <NavLink to="/evidence" className={({ isActive }) => isActive ? activeClass : inactiveClass}>
+              <ShieldCheck className="w-5 h-5 text-indigo-400" />
               <span>Evidence Engine</span>
-            </div>
-            <div className="flex items-center space-x-3 px-4 py-2.5 text-slate-500 text-sm cursor-not-allowed">
-              <Map className="w-4 h-4 text-slate-600" />
+            </NavLink>
+            <NavLink to="/roadmap" className={({ isActive }) => isActive ? activeClass : inactiveClass}>
+              <Map className="w-5 h-5 text-emerald-400" />
               <span>Adaptive Roadmap</span>
-            </div>
-            <div className="flex items-center space-x-3 px-4 py-2.5 text-slate-500 text-sm cursor-not-allowed">
-              <BarChart3 className="w-4 h-4 text-slate-600" />
+            </NavLink>
+            <NavLink to="/progress" className={({ isActive }) => isActive ? activeClass : inactiveClass}>
+              <BarChart3 className="w-5 h-5 text-cyan-400" />
               <span>Progress Tracker</span>
-            </div>
-          </div>
+            </NavLink>
+          </nav>
         </div>
       </div>
 
@@ -83,8 +83,8 @@ const Sidebar = () => {
         </button>
 
         <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400">
-          <div className="font-semibold text-slate-300">Phase 1 Integration</div>
-          <p>Connected End-to-End User Flow with MongoDB Persistence.</p>
+          <div className="font-semibold text-slate-300">Phase 2 Integration</div>
+          <p>Evidence-Based Employability Enhancement live with dynamic recalculations.</p>
         </div>
       </div>
     </aside>
