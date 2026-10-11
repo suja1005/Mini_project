@@ -1,0 +1,352 @@
+[
+  {
+    "id": "py_var_001",
+    "task_type": "Python",
+    "topic": "Python Basics",
+    "subtopic": "Variables",
+    "difficulty": "beginner",
+    "question": "Which of the following is a valid variable name in Python?",
+    "options": ["2myvar", "my_var", "my-var", "my var"],
+    "correct_answer": "my_var",
+    "explanation": "In Python, variable names can only contain alphanumeric characters and underscores, and cannot start with a digit."
+  },
+  {
+    "id": "py_var_002",
+    "task_type": "Python",
+    "topic": "Python Basics",
+    "subtopic": "Variables",
+    "difficulty": "beginner",
+    "question": "What is the output of the following code?\nx = 5\ny = '10'\nprint(type(x), type(y))",
+    "options": [
+      "<class 'int'> <class 'str'>",
+      "<class 'int'> <class 'int'>",
+      "<class 'str'> <class 'str'>",
+      "<class 'float'> <class 'str'>"
+    ],
+    "correct_answer": "<class 'int'> <class 'str'>",
+    "explanation": "x holds an integer literal 5, while y is enclosed in quotes making it a string."
+  },
+  {
+    "id": "py_var_003",
+    "task_type": "Python",
+    "topic": "Python Basics",
+    "subtopic": "Data Types",
+    "difficulty": "beginner",
+    "question": "Which built-in Python data type is immutable?",
+    "options": ["List", "Dictionary", "Tuple", "Set"],
+    "correct_answer": "Tuple",
+    "explanation": "Tuples in Python cannot be modified after creation, making them immutable."
+  },
+  {
+    "id": "py_io_001",
+    "task_type": "Python",
+    "topic": "Python Basics",
+    "subtopic": "Input and Output",
+    "difficulty": "beginner",
+    "question": "What data type does the built-in `input()` function return in Python 3?",
+    "options": ["int", "str", "float", "bool"],
+    "correct_answer": "str",
+    "explanation": "The `input()` function always reads a line from input and returns it as a string."
+  },
+  {
+    "id": "py_io_002",
+    "task_type": "Python",
+    "topic": "Python Basics",
+    "subtopic": "Type Conversion",
+    "difficulty": "beginner",
+    "question": "What will `int('45') + 5` evaluate to?",
+    "options": ["455", "50", "Error", "45.0"],
+    "correct_answer": "50",
+    "explanation": "`int('45')` converts the string '45' to integer 45, which is then added to 5 to equal 50."
+  },
+
+  {
+    "id": "py_ctrl_001",
+    "task_type": "Python",
+    "topic": "Control Flow",
+    "subtopic": "if / elif / else",
+    "difficulty": "beginner",
+    "question": "What will be printed?\nx = 10\nif x > 15:\n    print('A')\nelif x == 10:\n    print('B')\nelse:\n    print('C')",
+    "options": ["A", "B", "C", "A and B"],
+    "correct_answer": "B",
+    "explanation": "The `elif x == 10` condition evaluates to True, so 'B' is printed."
+  },
+  {
+    "id": "py_ctrl_002",
+    "task_type": "Python",
+    "topic": "Control Flow",
+    "subtopic": "for loop",
+    "difficulty": "beginner",
+    "question": "What is the output of `list(range(1, 5))`?",
+    "options": ["[1, 2, 3, 4, 5]", "[1, 2, 3, 4]", "[0, 1, 2, 3, 4]", "[2, 3, 4, 5]"],
+    "correct_answer": "[1, 2, 3, 4]",
+    "explanation": "`range(start, stop)` generates integers from `start` up to but not including `stop`."
+  },
+  {
+    "id": "py_ctrl_003",
+    "task_type": "Python",
+    "topic": "Control Flow",
+    "subtopic": "break / continue",
+    "difficulty": "intermediate",
+    "question": "What does the `continue` statement do inside a loop?",
+    "options": [
+      "Terminates the entire loop immediately",
+      "Skips the rest of the current iteration and jumps to the next iteration",
+      "Restarts the program",
+      "Pauses execution for 1 second"
+    ],
+    "correct_answer": "Skips the rest of the current iteration and jumps to the next iteration",
+    "explanation": "`continue` skips remaining instructions in the current loop iteration and moves to the next loop evaluation."
+  },
+  {
+    "id": "py_ctrl_004",
+    "task_type": "Python",
+    "topic": "Control Flow",
+    "subtopic": "while loop",
+    "difficulty": "intermediate",
+    "question": "How many times will 'Hello' print?\ni = 0\nwhile i < 3:\n    print('Hello')\n    i += 1",
+    "options": ["2 times", "3 times", "4 times", "Infinite loop"],
+    "correct_answer": "3 times",
+    "explanation": "The loop runs for i = 0, 1, 2 (3 iterations total)."
+  },
+
+  {
+    "id": "py_func_001",
+    "task_type": "Python",
+    "topic": "Functions",
+    "subtopic": "Function definition",
+    "difficulty": "beginner",
+    "question": "Which keyword is used to define a function in Python?",
+    "options": ["func", "def", "function", "define"],
+    "correct_answer": "def",
+    "explanation": "Functions in Python are defined using the `def` keyword."
+  },
+  {
+    "id": "py_func_002",
+    "task_type": "Python",
+    "topic": "Functions",
+    "subtopic": "Return values",
+    "difficulty": "beginner",
+    "question": "What is the return value of a function that does not contain a `return` statement?",
+    "options": ["0", "False", "None", "Empty string"],
+    "correct_answer": "None",
+    "explanation": "Python functions implicitly return `None` if execution reaches the end without an explicit return statement."
+  },
+  {
+    "id": "py_func_003",
+    "task_type": "Python",
+    "topic": "Functions",
+    "subtopic": "Parameters",
+    "difficulty": "intermediate",
+    "question": "In `def add(a, b=5): return a + b`, what is `b` called?",
+    "options": ["Required argument", "Default parameter", "Keyword argument", "Global variable"],
+    "correct_answer": "Default parameter",
+    "explanation": "Parameter `b` has a default value assigned (`b=5`), making it a default parameter."
+  },
+  {
+    "id": "py_func_004",
+    "task_type": "Python",
+    "topic": "Functions",
+    "subtopic": "Scope",
+    "difficulty": "intermediate",
+    "question": "What happens if a function tries to access a variable defined inside another function without returning it?",
+    "options": [
+      "It reads the value successfully",
+      "It raises a NameError",
+      "It creates a global copy",
+      "It returns None"
+    ],
+    "correct_answer": "It raises a NameError",
+    "explanation": "Variables defined inside a function are local to that function's scope."
+  },
+
+  {
+    "id": "py_ds_001",
+    "task_type": "Python",
+    "topic": "Data Structures",
+    "subtopic": "List",
+    "difficulty": "beginner",
+    "question": "Which method adds an element to the end of a list in Python?",
+    "options": ["add()", "push()", "append()", "insert()"],
+    "correct_answer": "append()",
+    "explanation": "The `append()` method appends a single item to the end of an existing list."
+  },
+  {
+    "id": "py_ds_002",
+    "task_type": "Python",
+    "topic": "Python Data Structures",
+    "subtopic": "Dictionary",
+    "difficulty": "beginner",
+    "question": "How do you access the value associated with key `'name'` in dictionary `d = {'name': 'Alice'}`?",
+    "options": ["d[0]", "d.get_first()", "d['name']", "d.value('name')"],
+    "correct_answer": "d['name']",
+    "explanation": "Dictionary elements are accessed using square brackets with the key name `d['name']` or `d.get('name')`."
+  },
+  {
+    "id": "py_ds_003",
+    "task_type": "Python",
+    "topic": "Data Structures",
+    "subtopic": "Set",
+    "difficulty": "intermediate",
+    "question": "What is the primary characteristic of a Python `set`?",
+    "options": [
+      "It preserves insertion order and allows duplicates",
+      "It contains only unique, unordered elements",
+      "It maps keys to values",
+      "It is immutable"
+    ],
+    "correct_answer": "It contains only unique, unordered elements",
+    "explanation": "Sets automatically eliminate duplicates and do not preserve element index ordering."
+  },
+  {
+    "id": "py_ds_004",
+    "task_type": "Python",
+    "topic": "Data Structures",
+    "subtopic": "Tuple",
+    "difficulty": "intermediate",
+    "question": "What will `len((10,))` evaluate to?",
+    "options": ["0", "1", "10", "Error"],
+    "correct_answer": "1",
+    "explanation": "` (10,) ` is a single-element tuple, so its length is 1."
+  },
+
+  {
+    "id": "ml_bas_001",
+    "task_type": "Machine Learning",
+    "topic": "Machine Learning Fundamentals",
+    "subtopic": "Supervised vs Unsupervised",
+    "difficulty": "beginner",
+    "question": "Which of the following is an example of Supervised Learning?",
+    "options": ["K-Means Clustering", "Linear Regression", "Principal Component Analysis (PCA)", "Apriori Algorithm"],
+    "correct_answer": "Linear Regression",
+    "explanation": "Linear regression predicts labeled output values based on input features, which defines Supervised Learning."
+  },
+  {
+    "id": "ml_bas_002",
+    "task_type": "Machine Learning",
+    "topic": "Machine Learning Fundamentals",
+    "subtopic": "Model Evaluation",
+    "difficulty": "beginner",
+    "question": "Which metric is commonly used to evaluate a Classification model?",
+    "options": ["Mean Squared Error (MSE)", "Accuracy Score", "R-squared", "Mean Absolute Error (MAE)"],
+    "correct_answer": "Accuracy Score",
+    "explanation": "Accuracy Score measures the proportion of correct predictions in classification problems."
+  },
+  {
+    "id": "ml_bas_003",
+    "task_type": "Machine Learning",
+    "topic": "Machine Learning Fundamentals",
+    "subtopic": "Overfitting & Underfitting",
+    "difficulty": "intermediate",
+    "question": "What characterizes an Overfitted machine learning model?",
+    "options": [
+      "High training error and high test error",
+      "Low training error but high test error",
+      "High training error but low test error",
+      "Low training error and low test error"
+    ],
+    "correct_answer": "Low training error but high test error",
+    "explanation": "Overfitting happens when a model learns training noise perfectly but fails to generalize to unseen test data."
+  },
+  {
+    "id": "ml_bas_004",
+    "task_type": "Machine Learning",
+    "topic": "Machine Learning Fundamentals",
+    "subtopic": "Feature Scaling",
+    "difficulty": "intermediate",
+    "question": "Why is feature scaling (like StandardScaler or MinMaxScaler) important before training distance-based algorithms like KNN?",
+    "options": [
+      "To prevent division by zero",
+      "To prevent features with larger numeric magnitudes from dominating distance calculations",
+      "To convert categorical data into text",
+      "To speed up database queries"
+    ],
+    "correct_answer": "To prevent features with larger numeric magnitudes from dominating distance calculations",
+    "explanation": "Distance metrics (e.g. Euclidean distance) are sensitive to feature scale differences."
+  },
+
+  {
+    "id": "sql_bas_001",
+    "task_type": "SQL",
+    "topic": "SQL Fundamentals",
+    "subtopic": "SELECT Queries",
+    "difficulty": "beginner",
+    "question": "Which SQL clause is used to filter records based on a specific condition?",
+    "options": ["GROUP BY", "WHERE", "ORDER BY", "SELECT"],
+    "correct_answer": "WHERE",
+    "explanation": "The `WHERE` clause filters records that satisfy a specified logical condition."
+  },
+  {
+    "id": "sql_bas_002",
+    "task_type": "SQL",
+    "topic": "SQL Fundamentals",
+    "subtopic": "Joins",
+    "difficulty": "intermediate",
+    "question": "Which JOIN returns all records from the left table and matched records from the right table?",
+    "options": ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL OUTER JOIN"],
+    "correct_answer": "LEFT JOIN",
+    "explanation": "A LEFT JOIN returns all rows from the left table, with NULLs for unmatched rows from the right table."
+  },
+  {
+    "id": "sql_bas_003",
+    "task_type": "SQL",
+    "topic": "SQL Fundamentals",
+    "subtopic": "Aggregation",
+    "difficulty": "intermediate",
+    "question": "Which clause must be used with aggregate functions like `COUNT()` or `SUM()` when grouping results by a column?",
+    "options": ["WHERE", "HAVING", "GROUP BY", "ORDER BY"],
+    "correct_answer": "GROUP BY",
+    "explanation": "`GROUP BY` groups rows that share values into summary rows before aggregate functions run."
+  },
+
+  {
+    "id": "web_bas_001",
+    "task_type": "Web Development",
+    "topic": "Web Fundamentals",
+    "subtopic": "HTTP Methods",
+    "difficulty": "beginner",
+    "question": "Which HTTP method is idempotent and primarily used to retrieve data from a server?",
+    "options": ["POST", "GET", "DELETE", "PATCH"],
+    "correct_answer": "GET",
+    "explanation": "GET requests are read-only and idempotent, fetching representation of resources."
+  },
+  {
+    "id": "web_bas_002",
+    "task_type": "Web Development",
+    "topic": "Web Fundamentals",
+    "subtopic": "REST APIs",
+    "difficulty": "intermediate",
+    "question": "What HTTP status code represents '200 OK'?",
+    "options": ["200", "201", "400", "404"],
+    "correct_answer": "200",
+    "explanation": "Status 200 OK indicates that the request succeeded."
+  },
+
+  {
+    "id": "gen_eng_001",
+    "task_type": "General",
+    "topic": "Software Engineering & Practice",
+    "subtopic": "Git & Version Control",
+    "difficulty": "beginner",
+    "question": "Which Git command creates a local copy of a remote repository?",
+    "options": ["git pull", "git fetch", "git clone", "git commit"],
+    "correct_answer": "git clone",
+    "explanation": "`git clone` copies an existing Git repository locally."
+  },
+  {
+    "id": "gen_eng_002",
+    "task_type": "General",
+    "topic": "Software Engineering & Practice",
+    "subtopic": "Testing",
+    "difficulty": "intermediate",
+    "question": "What is the primary goal of Unit Testing?",
+    "options": [
+      "To test end-to-end user UI interaction",
+      "To test individual components or functions in isolation",
+      "To measure database query execution speed",
+      "To test server network security"
+    ],
+    "correct_answer": "To test individual components or functions in isolation",
+    "explanation": "Unit testing verifies that small, isolated software units work correctly independently."
+  }
+]
