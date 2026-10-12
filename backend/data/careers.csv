@@ -1,0 +1,19 @@
+career_id,title,category,required_employability,learning_difficulty,opportunity_indicator
+ai-engineer,AI Engineer,Artificial Intelligence,80,HIGH,0.92
+data-scientist,Data Scientist,Data & Analytics,80,HIGH,0.88
+frontend-developer,Frontend Developer,Software Engineering,75,MEDIUM,0.85
+backend-developer,Backend Developer,Software Engineering,78,MEDIUM,0.87
+full-stack-developer,Full Stack Developer,Software Engineering,82,HIGH,0.90
+data-analyst,Data Analyst,Data & Analytics,72,LOW,0.84
+ml-engineer,ML Engineer,Artificial Intelligence,82,HIGH,0.89
+cloud-engineer,Cloud Engineer,Infrastructure & Cloud,78,MEDIUM,0.86
+devops-engineer,DevOps Engineer,Infrastructure & Cloud,80,HIGH,0.88
+cybersecurity-analyst,Cybersecurity Analyst,Security,76,MEDIUM,0.87
+ui-ux-designer,UI/UX Designer,Design,70,LOW,0.80
+software-developer,Software Developer,Software Engineering,75,MEDIUM,0.86
+java-developer,Java Developer,Software Engineering,76,MEDIUM,0.83
+python-developer,Python Developer,Software Engineering,75,MEDIUM,0.85
+data-engineer,Data Engineer,Data & Analytics,80,HIGH,0.89
+business-analyst,Business Analyst,Product & Business,72,LOW,0.82
+product-analyst,Product Analyst,Product & Business,74,MEDIUM,0.81
+security-engineer,Security Engineer,Security,82,HIGH,0.88

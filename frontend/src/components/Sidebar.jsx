@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
@@ -16,6 +16,7 @@ import {
 
 const Sidebar = () => {
   const { logout } = useAuth();
+  const location = useLocation();
 
   const activeClass = "flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-medium transition-all";
   const inactiveClass = "flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all";
@@ -44,7 +45,10 @@ const Sidebar = () => {
               <Compass className="w-5 h-5" />
               <span>Recommendations</span>
             </NavLink>
-            <NavLink to="/career/ai-engineer" className={({ isActive }) => isActive ? activeClass : inactiveClass}>
+            <NavLink 
+              to="/career/ai-engineer" 
+              className={location.pathname.startsWith('/career') ? activeClass : inactiveClass}
+            >
               <TrendingUp className="w-5 h-5" />
               <span>Career Analysis</span>
             </NavLink>

@@ -1,0 +1,24 @@
+skill_name,category,proficiency_level,default_numerical_value
+Python,Technical,Beginner,30
+Python,Technical,Intermediate,60
+Python,Technical,Advanced,85
+Java,Technical,Intermediate,60
+C/C++,Technical,Intermediate,60
+JavaScript,Technical,Intermediate,60
+SQL,Technical,Intermediate,60
+HTML/CSS,Technical,Intermediate,60
+Machine Learning,Technical,Intermediate,60
+Data Analysis,Technical,Intermediate,60
+Cloud,Technical,Intermediate,60
+Cybersecurity,Technical,Intermediate,60
+Git,Technical,Intermediate,60
+Communication,Soft Skill,Intermediate,60
+Teamwork,Soft Skill,Intermediate,60
+Leadership,Soft Skill,Intermediate,60
+Problem Solving,Soft Skill,Intermediate,60
+Adaptability,Soft Skill,Intermediate,60
+Time Management,Soft Skill,Intermediate,60
+Logical Reasoning,Aptitude,Intermediate,60
+Numerical Ability,Aptitude,Intermediate,60
+Verbal Ability,Aptitude,Intermediate,60
+Analytical Thinking,Aptitude,Intermediate,60

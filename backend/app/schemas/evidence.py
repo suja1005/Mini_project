@@ -4,7 +4,7 @@ from typing import List, Dict, Optional
 class ProjectEvidenceCreate(BaseModel):
     title: str = Field(..., min_length=2)
     description: str = Field(..., min_length=5)
-    skills_used: List[str] = Field(..., min_items=1)
+    skills_used: List[str] = Field(..., min_length=1)
     project_type: str = "Academic"  # Academic, Capstone, Personal, Hackathon, Open Source
     completion_status: str = "Completed"  # Completed, In Progress
     project_link: Optional[str] = ""

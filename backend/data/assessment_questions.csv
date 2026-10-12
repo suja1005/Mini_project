@@ -1,0 +1,11 @@
+id,category,question,option_0,option_1,option_2,option_3,correct_answer
+1,Logical Reasoning,"If all A are B and all B are C, which statement must be true?","All A are C","Some C are not A","No A are C","All C are A",0
+2,Logical Reasoning,"Which word does NOT belong with others: Apple, Orange, Grape, Carrot?","Apple","Orange","Grape","Carrot",3
+3,Logical Reasoning,"Look at this series: 2, 1, 1/2, 1/4, ... What number comes next?","1/3","1/8","2/8","1/16",1
+4,Logical Reasoning,"Statement: Some actors are singers. All singers are dancers. Conclusion: Some actors are dancers.","Follows logically","Does not follow","Cannot be determined","Opposite is true",0
+5,Logical Reasoning,"If CAT is coded as 3120, how is DOG coded?","4157","4147","41515","4158",0
+6,Numerical Ability,"A team completes 40% of a project in 6 days. Total days to complete?","12 days","15 days","18 days","20 days",1
+7,Numerical Ability,"What is 15% of 240?","36","24","32","40",0
+8,Verbal Ability,"Select synonym of METICULOUS:","Careless","Careful/Precise","Vague","Rapid",1
+9,Analytical Thinking,"A program has O(n^2) complexity. If input doubles, runtime increases by factor of:","2","4","8","16",1
+10,Problem Solving,"In Git, which command stages changes before committing?","git push","git add","git commit","git checkout",1

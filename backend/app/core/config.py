@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     # Environment
     ENV: str = os.getenv("ENV", "development")
 
-    class Config:
-        case_sensitive = True
+    model_config = {"case_sensitive": True}
 
 settings = Settings()
