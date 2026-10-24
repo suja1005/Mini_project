@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
 import { Sparkles, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 const Login = () => {
@@ -36,49 +37,62 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center p-4">
-      <div className="w-full max-w-md glass-card p-8 rounded-3xl border border-slate-800 space-y-6">
+    <div className="min-h-screen bg-[#f5f6f8] dark:bg-[#090d16] flex flex-col items-center justify-center p-4 transition-colors">
+      {/* Top right theme toggle */}
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
+
+      <div className="w-full max-w-md bg-white dark:bg-[#111827] p-8 md:p-10 rounded-3xl border border-gray-200/80 dark:border-slate-800 shadow-sm space-y-6 animate-fade-in">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-500 items-center justify-center shadow-lg shadow-indigo-500/20 mb-2">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 items-center justify-center shadow-xs mb-1">
+            <Sparkles className="w-6 h-6 text-indigo-400 dark:text-indigo-600" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-          <p className="text-sm text-slate-400">Sign in to your AI Career Guidance portal</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Welcome to CareerAI
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Sign in to access your AI guidance & adaptive roadmap
+          </p>
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center space-x-2">
+          <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 text-red-600 dark:text-red-400 text-xs flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase mb-2">Email Address</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Email Address
+            </label>
             <div className="relative">
-              <Mail className="w-5 h-5 text-slate-500 absolute left-3.5 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input 
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="student@university.edu"
-                className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-2xs"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase mb-2">Password</label>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Password
+            </label>
             <div className="relative">
-              <Lock className="w-5 h-5 text-slate-500 absolute left-3.5 top-3" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input 
-                type="password"
+                type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-2xs"
                 required
               />
             </div>
@@ -87,12 +101,12 @@ const Login = () => {
           <button 
             type="submit"
             disabled={submitting}
-            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-bold shadow-xs transition-all flex items-center justify-center space-x-2 text-sm disabled:opacity-50 active:scale-98"
           >
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Authenticating...</span>
+                <span>Signing in...</span>
               </>
             ) : (
               <>
@@ -103,9 +117,9 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-800/80">
+        <div className="text-center text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-gray-100 dark:border-slate-800">
           Don't have an account?{' '}
-          <Link to="/register" className="text-indigo-400 font-semibold hover:underline">
+          <Link to="/register" className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
             Register Student Account
           </Link>
         </div>

@@ -10,9 +10,9 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center space-y-4 text-slate-300">
-        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-        <p className="text-sm font-medium animate-pulse">Restoring CareerAI Session...</p>
+      <div className="min-h-screen bg-[#f5f6f8] dark:bg-[#090d16] flex flex-col items-center justify-center space-y-4 text-slate-600 dark:text-slate-300 transition-colors">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <p className="text-sm font-semibold animate-pulse">Restoring CareerAI Session...</p>
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -23,35 +24,37 @@ const RootRedirect = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <ErrorBoundary>
-          <Routes>
-            {/* Public Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <ErrorBoundary>
+            <Routes>
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
-            {/* Protected Application Routes */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-            <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
-            <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
-            <Route path="/career" element={<Navigate to="/career/ai-engineer" replace />} />
-            <Route path="/career/:careerId" element={<ProtectedRoute><CareerDetail /></ProtectedRoute>} />
-            <Route path="/career-analysis" element={<Navigate to="/career/ai-engineer" replace />} />
-            <Route path="/career-analysis/:careerId" element={<ProtectedRoute><CareerDetail /></ProtectedRoute>} />
-            <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
-            <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
-            <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+              {/* Protected Application Routes */}
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+              <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
+              <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
+              <Route path="/career" element={<Navigate to="/career/ai-engineer" replace />} />
+              <Route path="/career/:careerId" element={<ProtectedRoute><CareerDetail /></ProtectedRoute>} />
+              <Route path="/career-analysis" element={<Navigate to="/career/ai-engineer" replace />} />
+              <Route path="/career-analysis/:careerId" element={<ProtectedRoute><CareerDetail /></ProtectedRoute>} />
+              <Route path="/evidence" element={<ProtectedRoute><Evidence /></ProtectedRoute>} />
+              <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+              <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
 
-            {/* Root and Catch-all Redirects */}
-            <Route path="/" element={<RootRedirect />} />
-            <Route path="*" element={<RootRedirect />} />
-          </Routes>
-        </ErrorBoundary>
-      </Router>
-    </AuthProvider>
+              {/* Root and Catch-all Redirects */}
+              <Route path="/" element={<RootRedirect />} />
+              <Route path="*" element={<RootRedirect />} />
+            </Routes>
+          </ErrorBoundary>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

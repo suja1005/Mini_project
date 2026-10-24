@@ -203,9 +203,9 @@ const CareerDetail = () => {
       </div>
 
       {/* Career Selector Horizontal Tabs */}
-      <div className="glass-card p-2 rounded-2xl border border-slate-800 bg-slate-900/60 overflow-x-auto scrollbar-none">
+      <div className="bg-white dark:bg-[#111827] p-2 rounded-2xl border border-gray-200/80 dark:border-slate-800 shadow-xs overflow-x-auto scrollbar-none">
         <div className="flex items-center space-x-1.5 min-w-max">
-          <span className="text-xs font-semibold text-slate-400 px-3 flex items-center space-x-1.5">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 px-3 flex items-center space-x-1.5">
             <Layers className="w-3.5 h-3.5 text-slate-400" />
             <span>Target Role:</span>
           </span>
@@ -215,10 +215,10 @@ const CareerDetail = () => {
               <button
                 key={c.id}
                 onClick={() => handleSelectCareer(c.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                   isSelected
-                    ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/25 border border-indigo-400/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    ? 'bg-slate-900 text-white dark:bg-indigo-600 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                 }`}
               >
                 {c.title}
@@ -229,38 +229,36 @@ const CareerDetail = () => {
       </div>
 
       {/* Main Header */}
-      <div className="glass-card p-6 md:p-8 rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900/90 via-[#0d1322] to-indigo-950/20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white dark:bg-[#111827] p-6 md:p-8 rounded-3xl border border-gray-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
             <div className="flex items-center space-x-2.5">
-              <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-xs font-bold border border-indigo-500/20">
+              <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-xs font-bold border border-indigo-200/60 dark:border-indigo-800/40">
                 {analysis?.category || 'Technology'}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${riskInfo.bg}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${riskInfo.bg}`}>
                 {riskInfo.badge}
               </span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center space-x-3">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center space-x-3">
               <span>{analysis?.title}</span>
             </h1>
-            <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-2xl leading-relaxed">
               Comprehensive decision & risk assessment synthesizing verified skills, target market requirements, learning effort, and empirical achievability scores.
             </p>
           </div>
 
-          <div className="flex items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border border-slate-800/80 shrink-0">
+          <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-gray-200/60 dark:border-slate-700 shrink-0">
             <div className="text-center px-2">
-              <div className="text-xs text-slate-400 uppercase font-semibold">Career Fit</div>
-              <div className="text-3xl font-extrabold text-indigo-400 mt-0.5">
+              <div className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Career Fit</div>
+              <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5">
                 {analysis?.fit_score}%
               </div>
             </div>
-            <div className="h-10 w-px bg-slate-800" />
+            <div className="h-10 w-px bg-gray-200 dark:bg-slate-700" />
             <div className="text-center px-2">
-              <div className="text-xs text-slate-400 uppercase font-semibold">Achievability</div>
-              <div className="text-3xl font-extrabold text-emerald-400 mt-0.5">
+              <div className="text-xs text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">Achievability</div>
+              <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
                 {analysis?.achievability}%
               </div>
             </div>
