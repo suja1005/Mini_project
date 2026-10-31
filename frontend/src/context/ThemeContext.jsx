@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 
 const ThemeContext = createContext({
   theme: 'light',
@@ -8,48 +8,14 @@ const ThemeContext = createContext({
 });
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setThemeState] = useState(() => {
-    try {
-      const savedTheme = localStorage.getItem('app-theme');
-      if (savedTheme === 'dark' || savedTheme === 'light') {
-        return savedTheme;
-      }
-    } catch {
-      // ignore
-    }
-    return 'light'; // Default to clean, modern light mode like reference image
-  });
-
   useEffect(() => {
-    try {
-      localStorage.setItem('app-theme', theme);
-    } catch {
-      // ignore
-    }
-
     const root = document.documentElement;
-    root.setAttribute('data-theme', theme);
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
-
-  const setTheme = (newTheme) => {
-    if (newTheme === 'light' || newTheme === 'dark') {
-      setThemeState(newTheme);
-    }
-  };
-
-  const isDark = theme === 'dark';
+    root.setAttribute('data-theme', 'light');
+    root.classList.remove('dark');
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, isDark, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme: 'light', isDark: false, toggleTheme: () => {}, setTheme: () => {} }}>
       {children}
     </ThemeContext.Provider>
   );

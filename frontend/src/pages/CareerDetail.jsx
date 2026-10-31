@@ -326,14 +326,14 @@ const CareerDetail = () => {
           <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analysis?.skill_gaps || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="skill" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} domain={[0, 100]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e9e3f5" />
+                <XAxis dataKey="skill" stroke="#716a7c" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#716a7c" tick={{ fontSize: 11 }} domain={[0, 100]} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#d8d0e4', borderRadius: '12px', fontSize: '12px', color: '#211b2b' }}
                 />
-                <Bar dataKey="current" fill="#6366f1" radius={[4, 4, 0, 0]} name="Current Level" />
-                <Bar dataKey="required" fill="#10b981" radius={[4, 4, 0, 0]} name="Required Level" />
+                <Bar dataKey="current" fill="#6d28d9" radius={[4, 4, 0, 0]} name="Current Level" />
+                <Bar dataKey="required" fill="#a78bfa" radius={[4, 4, 0, 0]} name="Required Level" />
               </BarChart>
             </ResponsiveContainer>
           </div>

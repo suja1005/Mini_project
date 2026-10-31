@@ -1,719 +1,619 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { profileService } from '../services/profileService';
-import { assessmentService } from '../services/assessmentService';
-import { recommendationService } from '../services/recommendationService';
-import { evidenceService } from '../services/evidenceService';
 import { roadmapService } from '../services/roadmapService';
-import { progressService } from '../services/progressService';
-import MetricCard from '../components/MetricCard';
-import PhaseBanner from '../components/PhaseBanner';
-import { 
-  UserCheck, 
-  Award, 
-  Compass, 
-  TrendingUp, 
-  ArrowRight,
-  ShieldCheck, 
-  Map, 
-  BarChart3,
-  Loader2, 
-  AlertCircle,
+import {
+  BookOpen,
   CheckCircle2,
+  Clock,
+  Lock,
+  Unlock,
+  Award,
+  TrendingUp,
+  Map,
+  ArrowRight,
+  Loader2,
+  AlertCircle,
   Sparkles,
-  Paperclip,
-  Mic,
-  Lightbulb,
-  Send,
-  Plus,
-  FileText,
-  Layers,
-  ArrowUpRight,
-  Bot,
-  X,
-  Target
+  Play,
+  ClipboardCheck,
+  RotateCcw,
+  ChevronRight,
+  Target,
+  Star,
+  Zap,
+  BarChart3,
+  CheckSquare,
+  Circle,
+  Activity
 } from 'lucide-react';
+import ChatbotWidget from '../components/ChatbotWidget';
 
+// ─────────────────────────────────────────────
+// Colour tokens (violet-first, white background)
+// ─────────────────────────────────────────────
+const violet = {
+  600: '#7C3AED',
+  700: '#6D28D9',
+  100: '#EDE9FE',
+  50:  '#F5F3FF',
+};
+
+// Helper: format ISO timestamp to friendly relative string
+function timeAgo(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days  = Math.floor(diff / 86400000);
+    if (mins  < 2)  return 'just now';
+    if (mins  < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days  < 30) return `${days}d ago`;
+    return new Date(isoStr).toLocaleDateString();
+  } catch {
+    return '';
+  }
+}
+
+// ─────────────────────────────────────────────
+// Stat Card (used in "My Learning Activity")
+// ─────────────────────────────────────────────
+const StatCard = ({ icon: Icon, label, value, color = 'violet', bg }) => {
+  const colorMap = {
+    violet: { text: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
+    green:  { text: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100'  },
+    orange: { text: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-100' },
+    gray:   { text: 'text-slate-500',  bg: 'bg-slate-50',  border: 'border-slate-200'  },
+    blue:   { text: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-100'   },
+  };
+  const c = colorMap[color] || colorMap.violet;
+  return (
+    <div className={`p-4 rounded-2xl border ${c.border} ${bg || c.bg} flex flex-col gap-2`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c.bg} ${c.text}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className={`text-2xl font-black ${c.text}`}>{value ?? '—'}</div>
+      <div className="text-xs font-semibold text-slate-500 leading-tight">{label}</div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Phase Status Badge
+// ─────────────────────────────────────────────
+const PhaseBadge = ({ status }) => {
+  if (status === 'COMPLETED') return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 border border-green-200">
+      <CheckCircle2 className="w-3 h-3" /> Completed
+    </span>
+  );
+  if (status === 'LOCKED') return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+      <Lock className="w-3 h-3" /> Locked
+    </span>
+  );
+  // AVAILABLE / IN_PROGRESS
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-violet-100 text-violet-700 border border-violet-200">
+      <Unlock className="w-3 h-3" /> Unlocked
+    </span>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Phase Card
+// ─────────────────────────────────────────────
+const PhaseCard = ({ phase, index }) => {
+  if (!phase) return null;
+  const isCompleted = phase.status === 'COMPLETED';
+  const isLocked    = phase.status === 'LOCKED';
+  const isActive    = !isCompleted && !isLocked;
+
+  const borderCls = isCompleted
+    ? 'border-green-200'
+    : isActive
+    ? 'border-violet-200 shadow-sm shadow-violet-100'
+    : 'border-slate-200 opacity-75';
+
+  const bgCls = isCompleted
+    ? 'bg-green-50/40'
+    : isActive
+    ? 'bg-violet-50/30'
+    : 'bg-slate-50/50';
+
+  const phaseLabels = ['Beginner', 'Intermediate', 'Advanced'];
+  const phaseIcons  = [BookOpen, TrendingUp, Star];
+  const PhaseIcon   = phaseIcons[index] || BookOpen;
+
+  return (
+    <div className={`p-5 rounded-2xl border ${borderCls} ${bgCls} flex flex-col gap-3`}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center
+            ${isCompleted ? 'bg-green-100 text-green-600' :
+              isActive    ? 'bg-violet-100 text-violet-600' :
+                            'bg-slate-100 text-slate-400'}`}>
+            <PhaseIcon className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Phase {index + 1}
+            </div>
+            <div className="text-sm font-bold text-slate-800">{phase.name}</div>
+          </div>
+        </div>
+        <PhaseBadge status={phase.status} />
+      </div>
+
+      {/* Progress bar */}
+      <div>
+        <div className="flex justify-between text-[11px] font-semibold text-slate-500 mb-1">
+          <span>{phase.completed_topics_count}/{phase.total_topics_count} Topics</span>
+          <span>{phase.progress_percentage}%</span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${
+              isCompleted ? 'bg-green-500' : isActive ? 'bg-violet-500' : 'bg-slate-300'
+            }`}
+            style={{ width: `${phase.progress_percentage}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Score */}
+      <div className="text-[11px] text-slate-500 flex items-center justify-between">
+        <span>Best Assessment Score</span>
+        <span className={`font-bold ${
+          phase.best_score >= 80 ? 'text-green-600' :
+          phase.best_score !== null && phase.best_score !== undefined ? 'text-orange-500' :
+          'text-slate-400'
+        }`}>
+          {phase.best_score !== null && phase.best_score !== undefined
+            ? `${phase.best_score}%`
+            : 'Not taken'}
+        </span>
+      </div>
+
+      {/* Locked reason */}
+      {isLocked && (
+        <div className="text-[10px] text-slate-400 italic flex items-center gap-1 pt-1 border-t border-slate-200/60">
+          <Lock className="w-3 h-3 shrink-0" />
+          Pass previous phase assessment (≥80%) to unlock
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// Activity Item
+// ─────────────────────────────────────────────
+const ActivityItem = ({ activity }) => {
+  const isGreen  = activity.color === 'green';
+  const isOrange = activity.color === 'orange';
+
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5
+        ${isGreen ? 'bg-green-100 text-green-600' :
+          isOrange ? 'bg-orange-100 text-orange-500' :
+                     'bg-violet-100 text-violet-600'}`}>
+        {activity.icon === 'check'    && <CheckCircle2 className="w-3.5 h-3.5" />}
+        {activity.icon === 'award'    && <Award className="w-3.5 h-3.5" />}
+        {activity.icon === 'x-circle' && <RotateCcw className="w-3.5 h-3.5" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-slate-800 truncate">{activity.title}</p>
+        <p className="text-[11px] text-slate-500 truncate">{activity.description}</p>
+      </div>
+      {activity.timestamp && (
+        <span className="text-[10px] text-slate-400 shrink-0 pt-0.5">
+          {timeAgo(activity.timestamp)}
+        </span>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// MAIN DASHBOARD COMPONENT
+// ─────────────────────────────────────────────
 const Dashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
-  const [assessment, setAssessment] = useState(null);
-  const [topCareer, setTopCareer] = useState(null);
-  const [evidence, setEvidence] = useState(null);
-  const [roadmap, setRoadmap] = useState(null);
-  const [progress, setProgress] = useState(null);
+  const navigate  = useNavigate();
 
-  // AI Chat & Prompt Bar state
-  const [promptText, setPromptText] = useState('');
-  const [showPromptSuggestions, setShowPromptSuggestions] = useState(false);
-  const [isVoiceActive, setIsVoiceActive] = useState(false);
-  const [aiResponse, setAiResponse] = useState(null);
-  const [aiGenerating, setAiGenerating] = useState(false);
+  const [summary,  setSummary]  = useState(null);
+  const [activity, setActivity] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState(null);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        const [profData, passRes, recData, evData, rmData, progData] = await Promise.allSettled([
-          profileService.getProfile(),
-          assessmentService.getResults(),
-          recommendationService.getRecommendations(),
-          evidenceService.getEvidence(),
-          roadmapService.getRoadmap(),
-          progressService.getProgress()
-        ]);
-
-        if (profData.status === 'fulfilled') setProfile(profData.value);
-        if (passRes.status === 'fulfilled') setAssessment(passRes.value);
-        if (recData.status === 'fulfilled' && recData.value?.top_recommendations?.length > 0) {
-          setTopCareer(recData.value.top_recommendations[0]);
-        }
-        if (evData.status === 'fulfilled') setEvidence(evData.value);
-        if (rmData.status === 'fulfilled') setRoadmap(rmData.value);
-        if (progData.status === 'fulfilled') setProgress(progData.value);
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryRes, activityRes] = await Promise.allSettled([
+        roadmapService.getDashboardSummary(),
+        roadmapService.getRecentActivity(),
+      ]);
+      if (summaryRes.status === 'fulfilled')  setSummary(summaryRes.value);
+      if (activityRes.status === 'fulfilled') setActivity(activityRes.value || []);
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+      setError('Failed to load dashboard data. Please refresh.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const isProfileComplete = profile?.is_complete ?? false;
-  const isAssessmentComplete = assessment?.is_completed ?? false;
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const currentEmp = progress?.current_employability || roadmap?.current_employability || 58;
-  const targetEmp = progress?.target_employability || roadmap?.target_employability || 80;
-  const empGap = progress?.employability_gap || roadmap?.employability_gap || Math.max(0, targetEmp - currentEmp);
-  const avgConfidence = evidence?.average_confidence || 65;
-  const completedTasks = roadmap?.completed_tasks || 0;
-  const totalTasks = roadmap?.total_tasks || 1;
-  const progressPct = roadmap?.progress_percentage || 0;
+  // ── Derived helpers ──────────────────────────────────────────────────────────
+  const studentName = summary?.student_name
+    || user?.full_name
+    || 'Student';
 
-  // Next recommended task from roadmap
-  const nextTask = roadmap?.tasks?.find(t => t.status !== 'COMPLETED') || roadmap?.tasks?.[0];
+  const firstName = studentName.split(' ')[0];
 
-  // Quick prompt suggestions
-  const suggestedPrompts = [
-    "Summarize my employability gap for AI Engineer role",
-    "Which verified skills should I target next to reach 80%?",
-    "How does the Evidence Engine recalculate my confidence score?",
-    "Generate an accelerated 4-week milestones schedule"
-  ];
+  const phases = summary?.phases || [];
+  const beginnerPhase      = phases[0];
+  const intermediatePhase  = phases[1];
+  const advancedPhase      = phases[2];
 
-  const handleSendPrompt = (textToSend) => {
-    const query = textToSend || promptText;
-    if (!query.trim()) return;
+  // Assessment eligibility: any unlocked phase with all topics done and not yet passed
+  const eligibleAssessmentPhase = phases.find(
+    p => p.assessment_eligible && p.status !== 'COMPLETED'
+  );
 
-    setAiGenerating(true);
-    setAiResponse(null);
-
-    // Simulate smart contextual AI response based on student data
-    setTimeout(() => {
-      let responseBody = {
-        title: "AI Career Guidance Analysis",
-        query: query,
-        summary: `Based on your verified skills and current profile for ${topCareer ? topCareer.title : 'AI Engineer'}:`,
-        points: [
-          `Your current employability score is ${currentEmp}%, with a target of ${targetEmp}% (Gap: ${empGap}%).`,
-          `Evidence Engine has verified ${evidence?.total_verified || 0} skills with an average confidence of ${avgConfidence}%.`,
-          `To close your gap fastest: complete the high-priority task "${nextTask?.title || 'Advanced Deep Learning Quiz'}" in your adaptive roadmap.`,
-          `Submitting a verified GitHub repository or project artifact will boost your evidence confidence by up to +12%.`
-        ],
-        actionLabel: "Continue Roadmap Task",
-        actionLink: "/roadmap"
-      };
-
-      setAiResponse(responseBody);
-      setAiGenerating(false);
-      setPromptText('');
-      setShowPromptSuggestions(false);
-    }, 600);
-  };
-
-  const handleVoiceToggle = () => {
-    setIsVoiceActive(!isVoiceActive);
-    if (!isVoiceActive) {
-      setPromptText("How do I improve my career fit score for AI Engineer?");
-    }
-  };
-
+  // ── Loading state ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="h-96 flex flex-col items-center justify-center space-y-3 text-slate-500">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-        <span className="text-sm font-medium">Loading AI Guidance Dashboard...</span>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 text-violet-600 animate-spin" />
+        <p className="text-sm font-medium text-slate-500">Loading your dashboard…</p>
       </div>
     );
   }
 
+  // ── Error state ───────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="min-h-[40vh] flex flex-col items-center justify-center gap-4">
+        <AlertCircle className="w-10 h-10 text-red-400" />
+        <p className="text-sm text-slate-600">{error}</p>
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // ── Main render ───────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-8 pb-12 animate-fade-in">
-      {/* Top Banner Notice */}
-      <PhaseBanner 
-        title="Phase 2 Integrated Platform Active"
-        message="Evidence-Based Employability Enhancement Engine is online. Verified skills dynamically govern career readiness, adaptive roadmaps, and progress tracking."
-      />
+    <div className="min-h-screen bg-white pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-      {/* Hero Container - Clean SaaS layout matching the reference image */}
-      <div className="bg-white dark:bg-[#111827] rounded-3xl border border-gray-200/80 dark:border-slate-800 p-6 md:p-10 shadow-xs space-y-8 transition-colors">
-        {/* Welcome Headline */}
-        <div className="text-center max-w-2xl mx-auto space-y-2">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Welcome to CareerAI
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm md:text-base leading-relaxed">
-            Get started by selecting a task and AI Career Advisor can guide the rest. Not sure where to start?
-          </p>
-        </div>
-
-        {/* 2x2 Quick Action Cards (Exact layout from the reference image) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-          {/* Card 1: Skill Assessment (Soft Amber) */}
-          <Link
-            to="/assessment"
-            className="group flex items-center justify-between p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-600/50 bg-white dark:bg-[#162035] shadow-xs hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-slate-900 dark:text-white text-sm">
-                  Take Skill Assessment
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Verify technical & logical baseline
-                </div>
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-amber-500 group-hover:text-white flex items-center justify-center transition-colors shrink-0">
-              <Plus className="w-4 h-4" />
-            </div>
-          </Link>
-
-          {/* Card 2: Explore Careers (Soft Cyan / Sky) */}
-          <Link
-            to="/recommendations"
-            className="group flex items-center justify-between p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 hover:border-sky-300 dark:hover:border-sky-600/50 bg-white dark:bg-[#162035] shadow-xs hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Compass className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-slate-900 dark:text-white text-sm">
-                  Explore Top Careers
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Target AI & software roles with high fit
-                </div>
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-sky-500 group-hover:text-white flex items-center justify-center transition-colors shrink-0">
-              <Plus className="w-4 h-4" />
-            </div>
-          </Link>
-
-          {/* Card 3: Verify Evidence (Soft Emerald) */}
-          <Link
-            to="/evidence"
-            className="group flex items-center justify-between p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-600/50 bg-white dark:bg-[#162035] shadow-xs hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-slate-900 dark:text-white text-sm">
-                  Verify Skill Evidence
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Upload GitHub, certificates & projects
-                </div>
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-emerald-500 group-hover:text-white flex items-center justify-center transition-colors shrink-0">
-              <Plus className="w-4 h-4" />
-            </div>
-          </Link>
-
-          {/* Card 4: Milestone Roadmap (Soft Purple / Pink) */}
-          <Link
-            to="/roadmap"
-            className="group flex items-center justify-between p-4 rounded-2xl border border-gray-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-600/50 bg-white dark:bg-[#162035] shadow-xs hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex items-center space-x-3.5">
-              <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-800/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <Map className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="font-bold text-slate-900 dark:text-white text-sm">
-                  Adaptive Roadmap
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                  Take knowledge quizzes & verified tasks
-                </div>
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-purple-500 group-hover:text-white flex items-center justify-center transition-colors shrink-0">
-              <Plus className="w-4 h-4" />
-            </div>
-          </Link>
-        </div>
-
-        {/* AI Guidance Prompt Bar (Matching bottom docked box in reference image) */}
-        <div className="max-w-3xl mx-auto space-y-3">
-          <div className="rounded-2xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-[#0f172a] shadow-md p-3 space-y-2 focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:border-indigo-500 transition-all">
-            <textarea
-              rows={2}
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendPrompt();
-                }
-              }}
-              placeholder="Ask AI Career Advisor anything (e.g. 'Summarize my readiness for AI Engineer', 'How to reach 80% employability?')..."
-              className="w-full resize-none border-none bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-0 leading-relaxed"
-            />
-
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-slate-800 text-xs">
-              {/* Left action chips inside prompt */}
-              <div className="flex items-center space-x-2">
-                <Link
-                  to="/evidence"
-                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
-                >
-                  <Paperclip className="w-3.5 h-3.5" />
-                  <span>Attach Evidence</span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={handleVoiceToggle}
-                  className={`inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
-                    isVoiceActive 
-                      ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  <Mic className={`w-3.5 h-3.5 ${isVoiceActive ? 'animate-pulse text-rose-500' : ''}`} />
-                  <span>{isVoiceActive ? 'Listening...' : 'Voice Guidance'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPromptSuggestions(!showPromptSuggestions)}
-                  className="inline-flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
-                >
-                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Browse Prompts</span>
-                </button>
-              </div>
-
-              {/* Right: Character count & Send circular gradient button */}
-              <div className="flex items-center space-x-3">
-                <span className="text-[11px] text-slate-400">
-                  {promptText.length} / 3,000
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleSendPrompt()}
-                  disabled={aiGenerating || !promptText.trim()}
-                  className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 disabled:opacity-40 transition-all active:scale-95"
-                >
-                  {aiGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Browse Prompt Suggestions Popover */}
-          {showPromptSuggestions && (
-            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#162035] border border-gray-200 dark:border-slate-800 space-y-2 animate-fade-in">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-1">
-                Suggested Career Guidance Prompts
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {suggestedPrompts.map((p, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSendPrompt(p)}
-                    className="text-left text-xs p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-gray-200/60 dark:border-slate-700 hover:border-indigo-300 text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-all shadow-xs"
-                  >
-                    "{p}"
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* AI Response Card */}
-          {aiResponse && (
-            <div className="p-5 rounded-2xl bg-indigo-50/70 dark:bg-[#18233c] border border-indigo-200/80 dark:border-indigo-500/30 space-y-3 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
-                  <Bot className="w-4 h-4" />
-                  <span>{aiResponse.title}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAiResponse(null)}
-                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="text-xs text-slate-600 dark:text-slate-300 italic">
-                Query: "{aiResponse.query}"
-              </div>
-
-              <ul className="text-xs space-y-2 text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-900/60 p-3.5 rounded-xl border border-indigo-100 dark:border-slate-800">
-                {aiResponse.points.map((pt, i) => (
-                  <li key={i} className="flex items-start space-x-2">
-                    <span className="text-indigo-500 font-bold">•</span>
-                    <span>{pt}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex justify-end pt-1">
-                <Link
-                  to={aiResponse.actionLink}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition-all"
-                >
-                  <span>{aiResponse.actionLabel}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <div className="text-center text-[11px] text-slate-400">
-            Script may generate inaccurate information about people, places, or facts. Model: CareerAI Guidance v2.0
-          </div>
-        </div>
-      </div>
-
-      {/* Profile & Assessment Warning Alerts if incomplete */}
-      {(!isProfileComplete || !isAssessmentComplete) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {!isProfileComplete && (
-            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-                <div className="text-xs text-slate-700 dark:text-amber-200">
-                  <span className="font-bold block text-sm text-slate-900 dark:text-amber-100">Profile Incomplete</span>
-                  Complete your AI profile to unlock personalized recommendations.
-                </div>
-              </div>
-              <Link to="/profile" className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-white font-bold rounded-xl text-xs shrink-0 shadow-xs">
-                Complete Profile
-              </Link>
-            </div>
-          )}
-
-          {!isAssessmentComplete && (
-            <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <AlertCircle className="w-5 h-5 text-indigo-500 shrink-0" />
-                <div className="text-xs text-slate-700 dark:text-indigo-200">
-                  <span className="font-bold block text-sm text-slate-900 dark:text-indigo-100">Assessment Pending</span>
-                  Take the skill assessment to verify logical & technical score.
-                </div>
-              </div>
-              <Link to="/assessment" className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shrink-0 shadow-xs">
-                Take Assessment
-              </Link>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Phase 2 Enhanced Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <MetricCard 
-          title="Current Readiness"
-          value={`${currentEmp}%`}
-          subtitle={`Target: ${targetEmp}%`}
-          icon={TrendingUp}
-          color="emerald"
-          badge="Live"
-        />
-        <MetricCard 
-          title="Employability Gap"
-          value={`${empGap}%`}
-          subtitle="Points to Target"
-          icon={UserCheck}
-          color="amber"
-        />
-        <MetricCard 
-          title="Evidence Confidence"
-          value={`${avgConfidence}%`}
-          subtitle={evidence?.overall_evidence_status || "Partially Verified"}
-          icon={ShieldCheck}
-          color="cyan"
-        />
-        <MetricCard 
-          title="Roadmap Progress"
-          value={`${progressPct}%`}
-          subtitle={`${completedTasks} of ${totalTasks} Tasks`}
-          icon={Map}
-          color="indigo"
-        />
-        <MetricCard 
-          title="Verified Skills"
-          value={`${evidence?.total_verified || 0}`}
-          subtitle="Proven Competencies"
-          icon={CheckCircle2}
-          color="purple"
-        />
-      </div>
-
-      {/* Main Grid: Left Detailed Status & Right Career Track Cards (matching right side panel in image) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Top Match & Active Roadmap Priority */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Career Fit & Achievability Summary Card */}
-          <div className="bg-white dark:bg-[#111827] p-6 rounded-3xl border border-gray-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                  Career Fit & Achievability Summary
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Dynamically computed based on dual-verified evidence
-                </p>
-              </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                Verified Model
+        {/* ================================================================== */}
+        {/* A. PERSONALIZED WELCOME SECTION                                     */}
+        {/* ================================================================== */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm
+                        flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            {/* Avatar / Greeting Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center shrink-0 shadow-sm">
+              <span className="text-2xl font-black text-white">
+                {firstName.charAt(0).toUpperCase()}
               </span>
             </div>
-
-            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-[#162035] border border-gray-200/60 dark:border-slate-700/60 space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-800 dark:text-slate-200 font-semibold">
-                  Top Recommended: {topCareer ? topCareer.title : "AI Engineer"}
-                </span>
-                <span className="text-indigo-600 dark:text-indigo-400 font-extrabold text-base">
-                  {topCareer ? topCareer.fit_score : 87}% Fit
-                </span>
-              </div>
-              
-              <div className="w-full bg-gray-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${topCareer ? topCareer.fit_score : 87}%` }}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 text-center">
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-800/80 border border-gray-200/70 dark:border-slate-700/80">
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Current Readiness</div>
-                  <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{currentEmp}%</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-800/80 border border-gray-200/70 dark:border-slate-700/80">
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Employability Gap</div>
-                  <div className="text-sm font-bold text-amber-600 dark:text-amber-400 mt-0.5">{empGap}%</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-800/80 border border-gray-200/70 dark:border-slate-700/80">
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Verified Skills</div>
-                  <div className="text-sm font-bold text-indigo-600 dark:text-indigo-300 mt-0.5">{evidence?.total_verified || 0} Proven</div>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-800/80 border border-gray-200/70 dark:border-slate-700/80">
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">Roadmap Tasks</div>
-                  <div className="text-sm font-bold text-cyan-600 dark:text-cyan-400 mt-0.5">{completedTasks}/{totalTasks} Done</div>
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-between items-center text-xs">
-                <Link 
-                  to="/evidence"
-                  className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white flex items-center space-x-1.5 font-semibold"
-                >
-                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                  <span>Review Evidence Breakdown</span>
-                </Link>
-
-                <Link 
-                  to={`/career/${topCareer ? topCareer.id : 'ai-engineer'}`}
-                  className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1"
-                >
-                  <span>Decision & Risk Details</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                Welcome back, <span className="text-violet-600">{firstName}!</span>
+              </h1>
+              <p className="text-slate-500 text-sm mt-0.5">
+                Continue your learning journey and improve your employability.
+              </p>
             </div>
           </div>
 
-          {/* Active Next Task Card */}
-          {nextTask && (
-            <div className="bg-white dark:bg-[#111827] p-6 rounded-3xl border border-indigo-200 dark:border-indigo-500/30 shadow-xs space-y-4">
+          {/* Quick navigation shortcut */}
+          <Link
+            to="/roadmap"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600
+                       hover:bg-violet-700 text-white text-sm font-bold transition-colors shadow-sm shrink-0"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            Continue Learning
+          </Link>
+        </div>
+
+        {/* ================================================================== */}
+        {/* B. LEARNING ACTIVITY STATS                                          */}
+        {/* ================================================================== */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-violet-600" />
+              My Learning Activity
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <StatCard
+              icon={BookOpen}
+              label="Total Modules"
+              value={summary?.total_topics_count ?? 0}
+              color="violet"
+            />
+            <StatCard
+              icon={CheckCircle2}
+              label="Completed"
+              value={summary?.completed_topics_count ?? 0}
+              color="green"
+            />
+            <StatCard
+              icon={Clock}
+              label="In Progress"
+              value={summary?.in_progress_topics_count ?? 0}
+              color="orange"
+            />
+            <StatCard
+              icon={Circle}
+              label="Pending"
+              value={summary?.pending_topics_count ?? 0}
+              color="gray"
+            />
+            <StatCard
+              icon={Award}
+              label="Assessments Taken"
+              value={summary?.total_assessment_attempts ?? 0}
+              color="blue"
+            />
+          </div>
+        </section>
+
+        {/* ================================================================== */}
+        {/* MAIN GRID: Progress + Activity + Phases + Quick Actions             */}
+        {/* ================================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT COLUMN (col-span-2) */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* ============================================================== */}
+            {/* C. ROADMAP PROGRESS CARD                                        */}
+            {/* ============================================================== */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Next Priority Roadmap Action</h3>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Map className="w-4 h-4 text-violet-600" />
+                    My Roadmap Progress
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {summary?.career_title || 'AI Engineer'} Path
+                  </p>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold border ${
-                  nextTask.priority === 'HIGH' 
-                    ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800' 
-                    : 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800'
-                }`}>
-                  {nextTask.priority} Priority
-                </span>
+                <div className="text-right">
+                  <div className="text-3xl font-black text-violet-600">
+                    {summary?.overall_progress ?? 0}%
+                  </div>
+                  <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Overall
+                  </div>
+                </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#162035] border border-gray-200/60 dark:border-slate-700/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-300">{nextTask.type} • {nextTask.skill}</span>
-                  <span className="text-[11px] text-slate-500">Effort: {nextTask.estimated_effort}</span>
+              {/* Info chips */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                  <div className="text-[10px] text-slate-500 font-semibold">Selected Career</div>
+                  <div className="text-xs font-bold text-slate-800 mt-1 truncate">
+                    {summary?.career_title || '—'}
+                  </div>
                 </div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white">{nextTask.title}</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{nextTask.description}</p>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                  <div className="text-[10px] text-slate-500 font-semibold">Current Phase</div>
+                  <div className="text-xs font-bold text-violet-700 mt-1">
+                    {summary?.current_phase_name || 'Beginner'}
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                  <div className="text-[10px] text-slate-500 font-semibold">Phases Done</div>
+                  <div className="text-xs font-bold text-green-600 mt-1">
+                    {summary?.completed_phases_count ?? 0} / 3
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                  <div className="text-[10px] text-slate-500 font-semibold">Latest Score</div>
+                  <div className={`text-xs font-bold mt-1 ${
+                    summary?.latest_assessment_score >= 80 ? 'text-green-600' :
+                    summary?.latest_assessment_score !== null && summary?.latest_assessment_score !== undefined
+                      ? 'text-orange-500' : 'text-slate-400'
+                  }`}>
+                    {summary?.latest_assessment_score !== null && summary?.latest_assessment_score !== undefined
+                      ? `${summary.latest_assessment_score}%`
+                      : 'No attempt'}
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-end">
+              {/* Overall progress bar */}
+              <div>
+                <div className="flex justify-between text-xs font-semibold text-slate-500 mb-1.5">
+                  <span>Roadmap Completion</span>
+                  <span>
+                    {summary?.completed_topics_count ?? 0} / {summary?.total_topics_count ?? 0} Topics
+                  </span>
+                </div>
+                <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-violet-600 transition-all duration-700"
+                    style={{ width: `${summary?.overall_progress ?? 0}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Next recommended action */}
+              {summary?.next_recommended_action && (
+                <div className="flex items-start gap-3 p-3.5 rounded-xl bg-violet-50 border border-violet-100">
+                  <Sparkles className="w-4 h-4 text-violet-600 shrink-0 mt-0.5" />
+                  <p className="text-xs font-semibold text-violet-900">
+                    {summary.next_recommended_action}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ============================================================== */}
+            {/* D. PHASE STATUS CARDS                                           */}
+            {/* ============================================================== */}
+            <div>
+              <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-violet-600" />
+                Phase Status
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <PhaseCard phase={beginnerPhase}     index={0} />
+                <PhaseCard phase={intermediatePhase} index={1} />
+                <PhaseCard phase={advancedPhase}     index={2} />
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-6">
+
+            {/* ============================================================== */}
+            {/* F. QUICK ACTIONS                                                */}
+            {/* ============================================================== */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-violet-600" />
+                Quick Actions
+              </h3>
+
+              <Link
+                to="/roadmap"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-violet-200
+                           bg-violet-600 hover:bg-violet-700 text-white transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Play className="w-4 h-4 fill-current" />
+                  <span className="text-sm font-bold">Continue Learning</span>
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+
+              <Link
+                to="/roadmap"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200
+                           hover:border-violet-300 hover:bg-violet-50 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 text-slate-700">
+                  <Map className="w-4 h-4 text-violet-500" />
+                  <span className="text-sm font-semibold">View My Roadmap</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-violet-500 group-hover:translate-x-0.5 transition-all" />
+              </Link>
+
+              <Link
+                to="/recommendations"
+                className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200
+                           hover:border-violet-300 hover:bg-violet-50 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 text-slate-700">
+                  <Target className="w-4 h-4 text-violet-500" />
+                  <span className="text-sm font-semibold">Career Recommendations</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-violet-500 group-hover:translate-x-0.5 transition-all" />
+              </Link>
+
+              {/* Take Assessment – enabled only when eligible */}
+              {eligibleAssessmentPhase ? (
                 <Link
                   to="/roadmap"
-                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center space-x-2 shadow-xs transition-all active:scale-95"
+                  className="flex items-center justify-between p-3.5 rounded-xl border border-green-200
+                             bg-green-50 hover:bg-green-100 transition-colors group"
                 >
-                  <span>Continue Roadmap</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-2.5 text-green-700">
+                    <ClipboardCheck className="w-4 h-4" />
+                    <div>
+                      <div className="text-sm font-bold">Take Assessment</div>
+                      <div className="text-[10px] text-green-600">
+                        {eligibleAssessmentPhase.name} is ready!
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-green-400 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Projects / Career Goals Panel (matching the right-side list in the image!) */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-[#111827] p-6 rounded-3xl border border-gray-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                Career Goals (3)
-              </h2>
-              <Link 
-                to="/recommendations"
-                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1"
-              >
-                <span>View All</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
+              ) : (
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200
+                                bg-slate-50 opacity-60 cursor-not-allowed">
+                  <div className="flex items-center gap-2.5 text-slate-400">
+                    <ClipboardCheck className="w-4 h-4" />
+                    <div>
+                      <div className="text-sm font-semibold">Take Assessment</div>
+                      <div className="text-[10px]">Complete all phase topics first</div>
+                    </div>
+                  </div>
+                  <Lock className="w-4 h-4 text-slate-300" />
+                </div>
+              )}
             </div>
 
-            {/* List of Tracks */}
-            <div className="space-y-2.5">
-              {/* Item 1: Primary Target */}
-              <Link
-                to="/career/ai-engineer"
-                className="block p-3.5 rounded-2xl bg-slate-50 dark:bg-[#162035] border border-gray-200/70 dark:border-slate-700 hover:border-indigo-300 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    AI Engineer
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
-                    Active
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
-                  <span>Match: 87% • Verified</span>
-                  <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{currentEmp}% / {targetEmp}%</span>
-                </div>
-              </Link>
+            {/* ============================================================== */}
+            {/* E. RECENT ACTIVITY                                              */}
+            {/* ============================================================== */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-1">
+              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+                <CheckSquare className="w-4 h-4 text-violet-600" />
+                Recent Activity
+              </h3>
 
-              {/* Item 2 */}
-              <Link
-                to="/career/full-stack-developer"
-                className="block p-3.5 rounded-2xl bg-slate-50 dark:bg-[#162035] border border-gray-200/70 dark:border-slate-700 hover:border-indigo-300 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    Full Stack Developer
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-                    Alternative
-                  </span>
+              {activity.length === 0 ? (
+                <div className="py-8 flex flex-col items-center text-center gap-2">
+                  <BookOpen className="w-8 h-8 text-slate-300" />
+                  <p className="text-xs text-slate-500 max-w-[180px] leading-relaxed">
+                    No learning activity yet. Start your roadmap to see your progress here.
+                  </p>
+                  <Link
+                    to="/roadmap"
+                    className="mt-2 px-4 py-1.5 text-xs font-bold rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                  >
+                    Start Learning
+                  </Link>
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
-                  <span>Match: 82% • High Demand</span>
-                  <span className="text-slate-500 font-semibold">3 Tasks left</span>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {activity.map((a, idx) => (
+                    <ActivityItem key={idx} activity={a} />
+                  ))}
+                  <div className="pt-3 text-center">
+                    <Link
+                      to="/roadmap"
+                      className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center justify-center gap-1"
+                    >
+                      View all activity <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </div>
-              </Link>
-
-              {/* Item 3 */}
-              <Link
-                to="/career/data-scientist"
-                className="block p-3.5 rounded-2xl bg-slate-50 dark:bg-[#162035] border border-gray-200/70 dark:border-slate-700 hover:border-indigo-300 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                    Data Scientist
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-                    Recommended
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
-                  <span>Match: 76% • Math & ML</span>
-                  <span className="text-slate-500 font-semibold">Explore</span>
-                </div>
-              </Link>
+              )}
             </div>
 
-            {/* Quick Action Button */}
-            <Link
-              to="/recommendations"
-              className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 dark:border-slate-700 hover:border-indigo-500 text-slate-600 dark:text-slate-400 hover:text-indigo-600 flex items-center justify-center space-x-1.5 text-xs font-semibold transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Explore New Career Trajectory</span>
-            </Link>
-          </div>
-
-          {/* Quick Access to Phase 2 Modules */}
-          <div className="bg-white dark:bg-[#111827] p-6 rounded-3xl border border-gray-200/80 dark:border-slate-800 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Quick Shortcuts
-            </h3>
-            <div className="grid grid-cols-1 gap-2">
-              <Link 
-                to="/evidence" 
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-colors"
-              >
-                <div className="flex items-center space-x-2.5">
-                  <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                  <span>Upload Evidence & Projects</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-              </Link>
-              <Link 
-                to="/progress" 
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 transition-colors"
-              >
-                <div className="flex items-center space-x-2.5">
-                  <BarChart3 className="w-4 h-4 text-cyan-500" />
-                  <span>Progress Trend Charts</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-              </Link>
-            </div>
           </div>
         </div>
+
       </div>
+
+      {/* Gemini Chatbot – preserved as-is */}
+      <ChatbotWidget />
     </div>
   );
 };

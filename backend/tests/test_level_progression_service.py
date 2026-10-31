@@ -10,7 +10,7 @@ from app.services.roadmap_service import (
     get_progress_dashboard
 )
 
-from app.database.connection import connect_to_mongo
+from app.database.connection import connect_to_mongo, get_database
 
 @pytest.mark.anyio
 async def test_level_progression_locking_rules():
@@ -18,6 +18,13 @@ async def test_level_progression_locking_rules():
     await connect_to_mongo()
     test_user_id = "test_progression_user_001"
     
+    # Clean up test user state for test idempotency
+    db = get_database()
+    if db is not None:
+        await db.user_skill_levels.delete_many({"user_id": test_user_id})
+        await db.roadmap_verifications.delete_many({"user_id": test_user_id})
+        await db.active_quizzes.delete_many({"user_id": test_user_id})
+
     # Initialize
     await init_user_skill_levels(test_user_id)
     
@@ -47,8 +54,6 @@ async def test_level_progression_locking_rules():
     assert len(quiz_data["questions"]) == 20
     
     # Query database active quiz for answer key simulation
-    from app.database.connection import get_database
-    db = get_database()
     active_quiz = await db.active_quizzes.find_one({"user_id": test_user_id, "level_id": "python_lvl_1"})
     full_qs = active_quiz["full_questions"]
     

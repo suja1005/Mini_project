@@ -18,6 +18,7 @@ from app.api.career_analysis import router as career_analysis_router
 from app.api.evidence import router as evidence_router
 from app.api.roadmap import router as roadmap_router
 from app.api.progress import router as progress_router
+from app.api.chatbot import router as chatbot_router
 from app.database.connection import connect_to_mongo, close_mongo_connection
 
 @asynccontextmanager
@@ -56,6 +57,7 @@ app.include_router(career_analysis_router, prefix=settings.API_V1_STR)
 app.include_router(evidence_router, prefix=settings.API_V1_STR)
 app.include_router(roadmap_router, prefix=settings.API_V1_STR)
 app.include_router(progress_router, prefix=settings.API_V1_STR)
+app.include_router(chatbot_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():

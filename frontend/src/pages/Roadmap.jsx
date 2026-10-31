@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { roadmapService } from '../services/roadmapService';
-import PhaseBanner from '../components/PhaseBanner';
-import MetricCard from '../components/MetricCard';
+import ChatbotWidget from '../components/ChatbotWidget';
 import { 
   Map, 
   CheckCircle2, 
@@ -29,40 +28,46 @@ import {
   Award,
   History,
   ArrowRight,
-  Info
+  Info,
+  ExternalLink,
+  ChevronDown,
+  Layers,
+  Check,
+  Video,
+  FileText,
+  AlertCircle
 } from 'lucide-react';
 
 const Roadmap = () => {
   const [loading, setLoading] = useState(true);
-  const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [roadmap, setRoadmap] = useState(null);
-  const [filterType, setFilterType] = useState('ALL');
   const [toastMessage, setToastMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // Modal / Drawer state
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [isQuizActive, setIsQuizActive] = useState(false);
-  const [quizQuestions, setQuizQuestions] = useState([]);
-  const [userAnswers, setUserAnswers] = useState({});
-  const [quizLoading, setQuizLoading] = useState(false);
-  const [quizResult, setQuizResult] = useState(null);
-  const [attemptHistory, setAttemptHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState('learning'); // 'learning', 'quiz', 'history'
+  // Topic Learning Modal State
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [topicLoading, setTopicLoading] = useState(false);
+  const [activeLearningTab, setActiveLearningTab] = useState('lesson'); // 'lesson', 'code', 'exercises', 'resources', 'check'
+  const [practiceAnswer, setPracticeAnswer] = useState('');
+  const [completingTopic, setCompletingTopic] = useState(false);
+
+  // Phase Assessment Modal State
+  const [assessmentPhase, setAssessmentPhase] = useState(null);
+  const [assessmentData, setAssessmentData] = useState(null);
+  const [assessmentAnswers, setAssessmentAnswers] = useState({});
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
+  const [assessmentResult, setAssessmentResult] = useState(null);
+  const [assessmentHistory, setAssessmentHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const fetchRoadmap = async () => {
     setLoading(true);
     try {
       const data = await roadmapService.getRoadmap();
       setRoadmap(data);
-
-      // If selectedTask is open, refresh its data
-      if (selectedTask) {
-        const freshTask = data.tasks.find(t => t.id === selectedTask.id);
-        if (freshTask) setSelectedTask(freshTask);
-      }
     } catch (err) {
       console.error("Error fetching roadmap:", err);
+      showError("Failed to load roadmap. Please verify your connection.");
     } finally {
       setLoading(false);
     }
@@ -79,917 +84,1098 @@ const Roadmap = () => {
 
   const showError = (msg) => {
     setErrorMessage(msg);
-    setTimeout(() => setErrorMessage(null), 5000);
+    setTimeout(() => setErrorMessage(null), 6000);
   };
 
-  // Open Task Detail
-  const handleOpenTask = async (task) => {
-    setSelectedTask(task);
-    setIsQuizActive(false);
-    setQuizResult(null);
-    setUserAnswers({});
-    setActiveTab('learning');
+  // Open Learning Page for specific module
+  const handleStartLearning = async (phaseId, topicId) => {
+    setTopicLoading(true);
+    setSelectedTopic(null);
+    setActiveLearningTab('lesson');
+    setPracticeAnswer('');
 
-    // Fetch attempt history
     try {
-      const history = await roadmapService.getVerificationHistory(task.id);
-      setAttemptHistory(history);
+      const material = await roadmapService.getTopicMaterials(phaseId, topicId);
+      setSelectedTopic(material);
     } catch (err) {
-      console.error("Error loading verification history:", err);
-    }
-  };
-
-  const handleCloseTask = () => {
-    setSelectedTask(null);
-    setIsQuizActive(false);
-    setQuizResult(null);
-    setUserAnswers({});
-  };
-
-  // Start Task
-  const handleStartTask = async (taskId) => {
-    setUpdatingTaskId(taskId);
-    try {
-      const updated = await roadmapService.startTask(taskId);
-      setRoadmap(updated);
-      const updatedTask = updated.tasks.find(t => t.id === taskId);
-      if (updatedTask) setSelectedTask(updatedTask);
-      showToast("Task started! Study the topics and complete the subtopics checklist.");
-    } catch (err) {
-      showError(err.response?.data?.detail || "Could not start task.");
+      const detail = err.response?.data?.detail || "Could not load topic learning materials.";
+      showError(detail);
     } finally {
-      setUpdatingTaskId(null);
+      setTopicLoading(false);
     }
   };
 
-  // Toggle Subtopic Checkbox
-  const handleToggleSubtopic = async (topicId, subtopicId, currentVal) => {
-    if (!selectedTask) return;
-    if (selectedTask.status === 'LOCKED') return;
+  // Complete Topic with verified signal
+  const handleCompleteTopic = async () => {
+    if (!selectedTopic) return;
+    setCompletingTopic(true);
 
     try {
-      const updated = await roadmapService.toggleSubtopic(
-        selectedTask.id,
-        topicId,
-        subtopicId,
-        !currentVal
+      const res = await roadmapService.completeTopic(
+        selectedTopic.phase_id,
+        selectedTopic.topic_id,
+        practiceAnswer || null
       );
-      setRoadmap(updated);
-      const freshTask = updated.tasks.find(t => t.id === selectedTask.id);
-      if (freshTask) setSelectedTask(freshTask);
+      setRoadmap(res.roadmap);
+      setSelectedTopic(prev => ({ ...prev, completed: true, completed_at: res.completed_at }));
+      showToast(`✓ Topic '${selectedTopic.module_title}' marked as COMPLETED! Progress updated.`);
     } catch (err) {
-      showError("Failed to update topic status.");
-    }
-  };
-
-  // Complete Learning Button
-  const handleCompleteLearning = async (taskId) => {
-    setUpdatingTaskId(taskId);
-    try {
-      const updated = await roadmapService.completeLearning(taskId);
-      setRoadmap(updated);
-      const freshTask = updated.tasks.find(t => t.id === taskId);
-      if (freshTask) setSelectedTask(freshTask);
-      showToast("Learning completed! Click 'Generate Questions' to verify your knowledge.");
-    } catch (err) {
-      showError(err.response?.data?.detail || "Please complete all subtopics before verifying.");
+      const detail = err.response?.data?.detail || "Failed to complete topic. Check your answer or requirements.";
+      showError(detail);
     } finally {
-      setUpdatingTaskId(null);
+      setCompletingTopic(false);
     }
   };
 
-  // Generate Quiz Questions
-  const handleGenerateQuestions = async (taskId) => {
-    setQuizLoading(true);
-    setUserAnswers({});
-    setQuizResult(null);
+  // Start Phase Assessment
+  const handleOpenAssessment = async (phase) => {
+    if (phase.status === 'LOCKED') {
+      showError(`This phase is locked. ${phase.unlock_requirement}`);
+      return;
+    }
+    if (!phase.all_topics_completed) {
+      showError(`Complete all topics in ${phase.name} before attempting the assessment.`);
+      return;
+    }
+
+    setAssessmentPhase(phase);
+    setAssessmentLoading(true);
+    setAssessmentResult(null);
+    setAssessmentAnswers({});
+    setShowHistory(false);
+
     try {
-      const questions = await roadmapService.generateQuestions(taskId);
-      setQuizQuestions(questions);
-      setIsQuizActive(true);
-      setActiveTab('quiz');
-      showToast(`Generated ${questions.length} new verification questions matching task topics.`);
+      const [quiz, history] = await Promise.all([
+        roadmapService.generatePhaseAssessment(phase.phase_id),
+        roadmapService.getPhaseAssessmentHistory(phase.phase_id)
+      ]);
+      setAssessmentData(quiz);
+      setAssessmentHistory(history);
     } catch (err) {
-      showError(err.response?.data?.detail || "Failed to generate questions.");
+      const detail = err.response?.data?.detail || "Could not generate assessment.";
+      showError(detail);
+      setAssessmentPhase(null);
     } finally {
-      setQuizLoading(false);
+      setAssessmentLoading(false);
     }
   };
 
-  // Option Select
-  const handleOptionSelect = (questionId, optionValue) => {
-    setUserAnswers(prev => ({
+  // Select Assessment Answer
+  const handleSelectAnswer = (qId, optionVal) => {
+    setAssessmentAnswers(prev => ({
       ...prev,
-      [questionId]: optionValue
+      [qId]: optionVal
     }));
   };
 
-  // Submit Quiz Verification
-  const handleSubmitQuiz = async () => {
-    if (!selectedTask) return;
-    setQuizLoading(true);
+  // Submit Phase Assessment
+  const handleSubmitAssessment = async () => {
+    if (!assessmentPhase) return;
+    setAssessmentLoading(true);
+
     try {
-      const result = await roadmapService.submitVerification(selectedTask.id, userAnswers);
-      setQuizResult(result);
-      setIsQuizActive(false);
+      const res = await roadmapService.submitPhaseAssessment(assessmentPhase.phase_id, assessmentAnswers);
+      setAssessmentResult(res);
+      setRoadmap(res.roadmap);
 
-      // Refresh roadmap
-      const updatedRoadmap = await roadmapService.getRoadmap();
-      setRoadmap(updatedRoadmap);
+      // Refresh attempt history
+      const history = await roadmapService.getPhaseAssessmentHistory(assessmentPhase.phase_id);
+      setAssessmentHistory(history);
 
-      const freshTask = updatedRoadmap.tasks.find(t => t.id === selectedTask.id);
-      if (freshTask) setSelectedTask(freshTask);
-
-      // Refresh history
-      const history = await roadmapService.getVerificationHistory(selectedTask.id);
-      setAttemptHistory(history);
-
-      if (result.passed) {
-        showToast("🎉 Learning Verified Successfully! Next task unlocked.");
+      if (res.passed) {
+        showToast(`🎉 Congratulations! You passed with ${res.percentage}%! Next phase unlocked.`);
       } else {
-        showError(`Verification score is ${result.percentage}% (Required: 70%). Review weak topics and try again.`);
+        showError(`Score: ${res.percentage}%. You need at least 80% to pass. Review weak topics and retry.`);
       }
     } catch (err) {
-      showError(err.response?.data?.detail || "Error submitting quiz.");
+      const detail = err.response?.data?.detail || "Error submitting assessment answers.";
+      showError(detail);
     } finally {
-      setQuizLoading(false);
-    }
-  };
-
-  const getTypeIcon = (type) => {
-    switch (type) {
-      case 'Learning': return <BookOpen className="w-4 h-4 text-indigo-400" />;
-      case 'Assessment': return <ClipboardCheck className="w-4 h-4 text-emerald-400" />;
-      case 'Project': return <Code2 className="w-4 h-4 text-amber-400" />;
-      case 'Practice': return <Terminal className="w-4 h-4 text-cyan-400" />;
-      case 'Evidence Submission': return <UploadCloud className="w-4 h-4 text-purple-400" />;
-      default: return <BookOpen className="w-4 h-4 text-indigo-400" />;
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'VERIFIED':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center space-x-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>VERIFIED ✓</span>
-          </span>
-        );
-      case 'LEARNING_COMPLETED':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center space-x-1">
-            <Award className="w-3.5 h-3.5 text-cyan-400" />
-            <span>LEARNING COMPLETED</span>
-          </span>
-        );
-      case 'IN_PROGRESS':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center space-x-1 animate-pulse">
-            <Clock className="w-3.5 h-3.5 text-indigo-400" />
-            <span>IN PROGRESS</span>
-          </span>
-        );
-      case 'FAILED':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-500/20 text-red-300 border border-red-500/40 flex items-center space-x-1">
-            <XCircle className="w-3.5 h-3.5 text-red-400" />
-            <span>VERIFICATION FAILED</span>
-          </span>
-        );
-      case 'LOCKED':
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1">
-            <Lock className="w-3.5 h-3.5 text-slate-500" />
-            <span>LOCKED 🔒</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700 flex items-center space-x-1">
-            <Unlock className="w-3.5 h-3.5 text-slate-400" />
-            <span>NOT STARTED</span>
-          </span>
-        );
+      setAssessmentLoading(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center space-y-3 text-slate-400">
-        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-        <span className="text-sm">Loading Adaptive Verification Roadmap...</span>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+        <p className="text-sm font-medium text-slate-500">Loading your personalized career roadmap...</p>
       </div>
     );
   }
 
-  const tasks = roadmap?.tasks || [];
-  const filteredTasks = tasks.filter(t => {
-    if (filterType === 'ALL') return true;
-    if (filterType === 'HIGH') return t.priority === 'HIGH';
-    if (filterType === 'VERIFIED') return t.status === 'VERIFIED';
-    if (filterType === 'IN_PROGRESS') return t.status === 'IN_PROGRESS';
-    if (filterType === 'LOCKED') return t.status === 'LOCKED';
-    return t.type.toLowerCase().includes(filterType.toLowerCase());
-  });
-
-  const groupedPhases = [1, 2, 3, 4, 5].map(phaseNum => {
-    const phaseTasks = filteredTasks.filter(t => t.phase === phaseNum);
-    const phaseName = roadmap?.phases?.[phaseNum - 1] || `Phase ${phaseNum}`;
-    return { phaseNum, phaseName, tasks: phaseTasks };
-  }).filter(g => g.tasks.length > 0);
+  const overallProgress = roadmap?.overall_progress || 0;
+  const phases = roadmap?.phases || [];
+  const completedTopics = roadmap?.completed_topics || [];
+  const pendingTopics = roadmap?.pending_topics || [];
+  const currentLearning = roadmap?.current_learning_topic;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center space-x-3">
-            <Map className="w-8 h-8 text-indigo-400" />
-            <span>Learning & Verification Roadmap</span>
-          </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Target Role: <span className="text-white font-bold">{roadmap?.career_title}</span> — Learn topics, complete subtopics, and verify understanding via dynamic quizzes.
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={fetchRoadmap}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center space-x-2 transition-all"
-          >
-            <RefreshCw className="w-4 h-4 text-indigo-400" />
-            <span>Refresh Progress</span>
-          </button>
-        </div>
-      </div>
-
-      <PhaseBanner 
-        title="Knowledge Verification Workflow"
-        message="Roadmap progress requires real proof of learning: Study Topics → Toggle Subtopics → Mark Learning Complete → Pass Dynamic 5-Question Quiz (>= 70%) → Unlock Next Task."
-      />
-
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20 relative">
+      {/* Toast Notifications */}
       {toastMessage && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-emerald-500/10 animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl bg-emerald-600 text-white shadow-xl flex items-center space-x-3 text-sm animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
-
       {errorMessage && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-red-500/10 animate-fadeIn">
-          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl bg-red-600 text-white shadow-xl flex items-center space-x-3 text-sm animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="w-5 h-5 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <MetricCard 
-          title="Verified Roadmap Progress" 
-          value={`${roadmap?.progress_percentage}%`} 
-          subtitle={`${roadmap?.verified_tasks} of ${roadmap?.total_tasks} Tasks Verified`} 
-          icon={Award} 
-          color="emerald" 
-        />
-        <MetricCard 
-          title="Current Employability" 
-          value={`${roadmap?.current_employability}%`} 
-          subtitle="Skill-Verified Model" 
-          icon={TrendingUp} 
-          color="indigo" 
-        />
-        <MetricCard 
-          title="Target Employability" 
-          value={`${roadmap?.target_employability}%`} 
-          subtitle={`Required for ${roadmap?.career_title}`} 
-          icon={Target} 
-          color="cyan" 
-        />
-        <MetricCard 
-          title="Employability Gap" 
-          value={`${roadmap?.employability_gap}%`} 
-          subtitle="Points to Target" 
-          icon={TrendingUp} 
-          color="amber" 
-        />
-      </div>
-
-      {/* Progress Bar */}
-      <div className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
-        <div className="flex justify-between text-xs font-semibold">
-          <span className="text-slate-300">Overall Verified Roadmap Completion</span>
-          <span className="text-indigo-400">{roadmap?.verified_tasks} / {roadmap?.total_tasks} Verified Tasks ({roadmap?.progress_percentage}%)</span>
-        </div>
-        <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-          <div 
-            className="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full rounded-full transition-all duration-500"
-            style={{ width: `${roadmap?.progress_percentage}%` }}
-          ></div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 pt-1 border-b border-slate-800 pb-3">
-        {[
-          { key: 'ALL', label: 'All Tasks' },
-          { key: 'HIGH', label: 'High Priority' },
-          { key: 'IN_PROGRESS', label: 'In Progress ⏳' },
-          { key: 'VERIFIED', label: 'Verified ✓' },
-          { key: 'LOCKED', label: 'Locked 🔒' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setFilterType(tab.key)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-              filterType === tab.key
-                ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
-                : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Phased Task Lists */}
-      <div className="space-y-6">
-        {groupedPhases.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
-            No tasks match the selected filter.
+      {/* ========================================================================= */}
+      {/* 1. ROADMAP PROGRESS DASHBOARD (Section 8)                                */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <div className="flex items-center space-x-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+              <Target className="w-4 h-4" />
+              <span>Target Career Roadmap</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">
+              {roadmap?.career_title || "AI Engineer"}
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 max-w-2xl">
+              {roadmap?.description}
+            </p>
           </div>
-        ) : (
-          groupedPhases.map(group => (
-            <div key={group.phaseNum} className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-7 h-7 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs">
-                  {group.phaseNum}
-                </div>
-                <h2 className="text-base font-bold text-white tracking-wide">
-                  {group.phaseName}
-                </h2>
-                <span className="text-xs text-slate-500 font-medium">({group.tasks.length} tasks)</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {group.tasks.map(task => {
-                  const isVerified = task.status === 'VERIFIED';
-                  const isLocked = task.status === 'LOCKED';
-                  const isInProgress = task.status === 'IN_PROGRESS';
-                  const isLearningCompleted = task.status === 'LEARNING_COMPLETED';
-                  const isFailed = task.status === 'FAILED';
-
-                  return (
-                    <div 
-                      key={task.id} 
-                      onClick={() => handleOpenTask(task)}
-                      className={`p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 hover:scale-[1.01] ${
-                        isVerified 
-                          ? 'bg-slate-900/40 border-emerald-500/30 shadow-lg shadow-emerald-500/5'
-                          : isLearningCompleted
-                          ? 'bg-slate-900/90 border-cyan-500/50 shadow-lg shadow-cyan-500/10'
-                          : isInProgress
-                          ? 'bg-slate-900/90 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
-                          : isFailed
-                          ? 'bg-slate-900/80 border-red-500/40'
-                          : isLocked
-                          ? 'bg-slate-950/80 border-slate-800/60 opacity-60'
-                          : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center space-x-2">
-                            <span className="p-1.5 rounded-lg bg-slate-800 border border-slate-700">
-                              {getTypeIcon(task.type)}
-                            </span>
-                            <span className="text-[11px] font-semibold text-slate-400">
-                              {task.type}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center space-x-2">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                              task.difficulty === 'Beginner'
-                                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                                : task.difficulty === 'Intermediate'
-                                ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                : 'bg-purple-500/15 text-purple-400 border-purple-500/30'
-                            }`}>
-                              {task.difficulty}
-                            </span>
-                            {getStatusBadge(task.status)}
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className={`text-base font-bold flex items-center justify-between ${isVerified ? 'text-slate-200' : 'text-white'}`}>
-                            <span>{task.title}</span>
-                            <ChevronRight className="w-4 h-4 text-slate-500" />
-                          </h3>
-                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                            {task.description}
-                          </p>
-                        </div>
-
-                        {/* Learning Topics Summary preview */}
-                        {task.topics && task.topics.length > 0 && (
-                          <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                            <div className="flex justify-between text-[11px] font-semibold text-slate-400">
-                              <span>Topics to Learn ({task.topics.length})</span>
-                              <span className="text-indigo-400">{task.learning_progress_percentage}% studied</span>
-                            </div>
-                            <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className="bg-indigo-500 h-full rounded-full transition-all duration-300"
-                                style={{ width: `${task.learning_progress_percentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center space-x-4 text-xs text-slate-400 pt-1">
-                          <span className="flex items-center space-x-1">
-                            <Clock className="w-3.5 h-3.5 text-slate-500" />
-                            <span>{task.estimated_hours}</span>
-                          </span>
-                          <span className="font-semibold text-indigo-400">
-                            Skill: {task.skill}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Card Footer */}
-                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                        {isLocked ? (
-                          <span className="text-[11px] text-slate-500 flex items-center space-x-1 font-medium">
-                            <Lock className="w-3 h-3 text-slate-500" />
-                            <span>Complete previous task first</span>
-                          </span>
-                        ) : isVerified ? (
-                          <span className="text-xs text-emerald-400 font-bold flex items-center space-x-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Verified (Quiz Score: {task.quiz_score ?? 'Pass'})</span>
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-indigo-400 font-semibold flex items-center space-x-1">
-                            <span>Click to view topics & verify</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={fetchRoadmap}
+              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              title="Refresh Roadmap"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <div className="text-right">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overall Progress</span>
+              <div className="text-3xl font-black text-indigo-600 dark:text-indigo-400">
+                {overallProgress}%
               </div>
             </div>
-          ))
-        )}
+          </div>
+        </div>
+
+        {/* Overall Progress Bar */}
+        <div className="mt-6">
+          <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
+            <span>Overall Roadmap Completion</span>
+            <span>{completedTopics.length} of {roadmap?.total_topics_count || 15} Topics Completed</span>
+          </div>
+          <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-emerald-500 transition-all duration-700 ease-out"
+              style={{ width: `${overallProgress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 3 Phase Cards Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          {phases.map((p, idx) => {
+            const isCompleted = p.status === 'COMPLETED';
+            const isLocked = p.status === 'LOCKED';
+            const isActive = p.status === 'AVAILABLE' || p.status === 'IN_PROGRESS';
+
+            return (
+              <div 
+                key={p.phase_id}
+                className={`p-5 rounded-xl border transition-all ${
+                  isCompleted 
+                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/60'
+                    : isActive
+                    ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800/60 shadow-sm'
+                    : 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Phase {idx + 1}
+                  </span>
+                  {isCompleted && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center space-x-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>COMPLETED</span>
+                    </span>
+                  )}
+                  {isActive && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center space-x-1">
+                      <Unlock className="w-3 h-3" />
+                      <span>UNLOCKED</span>
+                    </span>
+                  )}
+                  {isLocked && (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center space-x-1">
+                      <Lock className="w-3 h-3" />
+                      <span>LOCKED</span>
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mt-2">
+                  {p.name}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                  {p.description}
+                </p>
+
+                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Topics Progress</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {p.completed_topics_count} / {p.total_topics_count} ({p.progress_percentage}%)
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">Best Assessment</span>
+                    <span className={`font-bold ${
+                      p.best_score >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
+                      p.best_score !== null ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'
+                    }`}>
+                      {p.best_score !== null ? `${p.best_score}% (Req: 80%)` : 'Not Taken'}
+                    </span>
+                  </div>
+                </div>
+
+                {isLocked && (
+                  <div className="mt-3 text-[11px] text-slate-500 dark:text-slate-400 italic flex items-center space-x-1.5">
+                    <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Req: {p.unlock_requirement}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Current Focus Banner */}
+        <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-lg bg-indigo-600 text-white shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                Next Recommended Step
+              </span>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {roadmap?.next_recommended_action}
+              </p>
+            </div>
+          </div>
+          {currentLearning && (
+            <button
+              onClick={() => handleStartLearning(currentLearning.phase_id, currentLearning.id)}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors flex items-center space-x-2 shrink-0 self-start sm:self-auto shadow-sm"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Resume Learning</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* TASK DETAIL DRAWER / MODAL */}
+      {/* 2. THREE PROGRESSIVE PHASES (Sections 3, 4, 5, 6, 7)                     */}
       {/* ========================================================================= */}
-      {selectedTask && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col justify-between">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-slate-800 flex items-start justify-between gap-4 sticky top-0 bg-slate-900/95 backdrop-blur z-10">
-              <div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-indigo-400 border border-slate-700">
-                    Phase {selectedTask.phase}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                    Difficulty: {selectedTask.difficulty}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                    Estimated Time: {selectedTask.estimated_hours}
-                  </span>
-                  {getStatusBadge(selectedTask.status)}
+      <div className="space-y-6">
+        {phases.map((phase, pIdx) => {
+          const isPhaseCompleted = phase.status === 'COMPLETED';
+          const isPhaseLocked = phase.status === 'LOCKED';
+          const isPhaseActive = !isPhaseCompleted && !isPhaseLocked;
+
+          return (
+            <div
+              key={phase.phase_id}
+              className={`rounded-2xl border transition-all overflow-hidden ${
+                isPhaseCompleted
+                  ? 'border-emerald-300 dark:border-emerald-800/80 bg-white dark:bg-slate-900 shadow-sm'
+                  : isPhaseActive
+                  ? 'border-indigo-300 dark:border-indigo-800/80 bg-white dark:bg-slate-900 shadow-md ring-1 ring-indigo-500/20'
+                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/30 opacity-75'
+              }`}
+            >
+              {/* Phase Header */}
+              <div className={`p-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                isPhaseCompleted
+                  ? 'bg-emerald-500/5 border-emerald-100 dark:border-emerald-900/40'
+                  : isPhaseActive
+                  ? 'bg-indigo-500/5 border-indigo-100 dark:border-indigo-900/40'
+                  : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800'
+              }`}>
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      Phase {phase.phase_number}
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-700">•</span>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      {phase.difficulty}
+                    </span>
+                    <span className="text-slate-300 dark:text-slate-700">•</span>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      Passing Score: {phase.passing_score}%
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center space-x-2.5">
+                    <span>{phase.name}</span>
+                    {isPhaseCompleted && (
+                      <span className="p-1 rounded-full bg-emerald-500 text-white">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                    )}
+                    {isPhaseLocked && (
+                      <span className="p-1 rounded-full bg-slate-400 text-white">
+                        <Lock className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
+                    {phase.description}
+                  </p>
                 </div>
-                <h2 className="text-xl md:text-2xl font-extrabold text-white">
-                  {selectedTask.title}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {selectedTask.description}
-                </p>
+
+                <div className="flex items-center space-x-3 shrink-0">
+                  {isPhaseCompleted && (
+                    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center space-x-1.5">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>PHASE PASSED (80%+)</span>
+                    </span>
+                  )}
+                  {isPhaseActive && (
+                    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 flex items-center space-x-1.5">
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>CURRENT PHASE</span>
+                    </span>
+                  )}
+                  {isPhaseLocked && (
+                    <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 flex items-center space-x-1.5">
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>LOCKED</span>
+                    </span>
+                  )}
+                </div>
               </div>
-              <button 
-                onClick={handleCloseTask}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all shrink-0"
+
+              {/* Modules Grid */}
+              <div className="p-6">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+                  Learning Modules & Topics ({phase.completed_topics_count} of {phase.total_topics_count} Completed)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {phase.modules.map((mod) => {
+                    const isModCompleted = mod.completed;
+                    const canStart = !isPhaseLocked;
+
+                    return (
+                      <div
+                        key={mod.id}
+                        className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${
+                          isModCompleted
+                            ? 'bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-300 dark:border-emerald-800/60 shadow-xs'
+                            : canStart
+                            ? 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm'
+                            : 'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-60'
+                        }`}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center space-x-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{mod.estimated_duration}</span>
+                            </span>
+
+                            {isModCompleted ? (
+                              <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Completed</span>
+                              </span>
+                            ) : canStart ? (
+                              <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                                Incomplete
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 dark:bg-slate-800 text-slate-500 flex items-center space-x-1">
+                                <Lock className="w-3 h-3" />
+                                <span>Locked</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                            {mod.module_title}
+                          </h3>
+
+                          <ul className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+                            {mod.learning_objectives?.slice(0, 2).map((obj, oIdx) => (
+                              <li key={oIdx} className="flex items-start space-x-1.5">
+                                <span className="text-indigo-500 font-bold">•</span>
+                                <span className="line-clamp-1">{obj}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Start Learning Button (Section 4) */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                          <button
+                            onClick={() => handleStartLearning(phase.phase_id, mod.id)}
+                            disabled={!canStart}
+                            className={`w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 ${
+                              isModCompleted
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800'
+                                : canStart
+                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs active:scale-98'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                            }`}
+                          >
+                            {isModCompleted ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Review Topic</span>
+                              </>
+                            ) : canStart ? (
+                              <>
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                                <span>Start Learning</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>Phase Locked</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Phase Assessment Banner & Action (Section 7) */}
+                <div className={`mt-6 p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                  isPhaseCompleted
+                    ? 'bg-emerald-500/10 border-emerald-300 dark:border-emerald-800'
+                    : phase.all_topics_completed && !isPhaseLocked
+                    ? 'bg-indigo-500/10 border-indigo-300 dark:border-indigo-800 ring-2 ring-indigo-500/20 animate-pulse'
+                    : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
+                }`}>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <ClipboardCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        {phase.name} Assessment (80% Passing Rule)
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {isPhaseCompleted
+                        ? `You have passed this phase with a verified score of ${phase.best_score}%.`
+                        : isPhaseLocked
+                        ? `Phase assessment is locked. ${phase.unlock_requirement}.`
+                        : phase.all_topics_completed
+                        ? 'All topics completed! Take the phase assessment now. Score 80% or higher to unlock the next phase.'
+                        : `Complete all ${phase.total_topics_count} topics in this phase to unlock this assessment.`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={() => handleOpenAssessment(phase)}
+                      disabled={isPhaseLocked || !phase.all_topics_completed}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+                        isPhaseCompleted
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : phase.all_topics_completed && !isPhaseLocked
+                          ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-95'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <ClipboardCheck className="w-4 h-4" />
+                      <span>
+                        {isPhaseCompleted ? 'Retake Assessment' : 'Take Phase Assessment'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. TOPIC LEARNING MODAL / VIEW (Sections 4, 5, 6)                        */}
+      {/* ========================================================================= */}
+      {selectedTopic && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                  <span>{selectedTopic.phase_name}</span>
+                  <span>•</span>
+                  <span className="flex items-center space-x-1 text-slate-500">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{selectedTopic.estimated_duration}</span>
+                  </span>
+                  {selectedTopic.completed && (
+                    <>
+                      <span>•</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center space-x-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Completed</span>
+                      </span>
+                    </>
+                  )}
+                </div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  {selectedTopic.module_title}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedTopic(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                ✕
+                <XCircle className="w-6 h-6" />
               </button>
             </div>
 
-            {/* Modal Content Tabs */}
-            <div className="p-6 space-y-6">
-              {/* Tab Navigation */}
-              <div className="flex border-b border-slate-800 space-x-4">
-                <button
-                  onClick={() => { setActiveTab('learning'); setIsQuizActive(false); }}
-                  className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center space-x-2 ${
-                    activeTab === 'learning'
-                      ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>1. What You Need to Learn</span>
-                </button>
+            {/* Navigation Tabs */}
+            <div className="flex items-center space-x-2 px-6 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto text-xs font-bold">
+              <button
+                onClick={() => setActiveLearningTab('lesson')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
+                  activeLearningTab === 'lesson'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Lesson & Explanation</span>
+              </button>
+              <button
+                onClick={() => setActiveLearningTab('code')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
+                  activeLearningTab === 'code'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                <span>Code Examples</span>
+              </button>
+              <button
+                onClick={() => setActiveLearningTab('exercises')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
+                  activeLearningTab === 'exercises'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Terminal className="w-3.5 h-3.5" />
+                <span>Practical Exercise & Project</span>
+              </button>
+              <button
+                onClick={() => setActiveLearningTab('resources')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
+                  activeLearningTab === 'resources'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Official Docs & Videos</span>
+              </button>
+              <button
+                onClick={() => setActiveLearningTab('check')}
+                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1.5 ${
+                  activeLearningTab === 'check'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                <span>Knowledge Check & Complete</span>
+              </button>
+            </div>
 
-                <button
-                  onClick={() => setActiveTab('quiz')}
-                  disabled={selectedTask.status === 'LOCKED'}
-                  className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center space-x-2 ${
-                    activeTab === 'quiz'
-                      ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  <span>2. Verify Knowledge (Quiz)</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`pb-3 text-xs font-bold transition-all border-b-2 flex items-center space-x-2 ${
-                    activeTab === 'history'
-                      ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <History className="w-4 h-4" />
-                  <span>Attempt History ({attemptHistory.length})</span>
-                </button>
+            {/* Modal Content Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm">
+              {/* Learning Objectives Callout */}
+              <div className="p-4 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-800/40">
+                <h4 className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+                  <Target className="w-4 h-4" />
+                  <span>Topic Learning Objectives</span>
+                </h4>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
+                  {selectedTopic.learning_objectives?.map((obj, i) => (
+                    <li key={i} className="flex items-start space-x-2">
+                      <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                      <span>{obj}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              {/* TAB 1: WHAT YOU NEED TO LEARN & SUBTOPICS */}
-              {activeTab === 'learning' && (
+              {/* TAB 1: Lesson & Explanation */}
+              {activeLearningTab === 'lesson' && (
                 <div className="space-y-6">
-                  {/* Task Lock Warning */}
-                  {selectedTask.status === 'LOCKED' && (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center space-x-3">
-                      <Lock className="w-5 h-5 text-amber-400 shrink-0" />
-                      <span>This task is locked. Complete and verify the previous prerequisite task first to unlock learning.</span>
+                  <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-sm">
+                    <p className="font-medium text-base text-slate-900 dark:text-white">
+                      {selectedTopic.lesson}
+                    </p>
+                  </div>
+
+                  {selectedTopic.step_by_step_explanation && (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Step-by-Step Concepts Breakdown
+                      </h4>
+                      <div className="space-y-2.5">
+                        {selectedTopic.step_by_step_explanation.map((step, idx) => (
+                          <div key={idx} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+                            {step}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
+                </div>
+              )}
 
-                  {/* Learning Progress Bar */}
-                  <div className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-slate-300">Overall Learning Topics Progress</span>
-                      <span className="text-indigo-400">{selectedTask.learning_progress_percentage}% Studied</span>
+              {/* TAB 2: Code Examples */}
+              {activeLearningTab === 'code' && (
+                <div className="space-y-6">
+                  {selectedTopic.code_examples?.map((ex, idx) => (
+                    <div key={idx} className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center space-x-2">
+                          <Code2 className="w-4 h-4 text-indigo-500" />
+                          <span>{ex.title}</span>
+                        </span>
+                      </div>
+                      <div className="p-4 bg-slate-900 text-emerald-400 font-mono text-xs overflow-x-auto">
+                        <pre className="whitespace-pre-wrap">{ex.code}</pre>
+                      </div>
+                      <div className="p-3.5 bg-slate-50 dark:bg-slate-850 text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                        <strong>Explanation:</strong> {ex.explanation}
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-indigo-500 h-full rounded-full transition-all duration-300"
-                        style={{ width: `${selectedTask.learning_progress_percentage}%` }}
-                      ></div>
+                  ))}
+                </div>
+              )}
+
+              {/* TAB 3: Practical Exercise & Project */}
+              {activeLearningTab === 'exercises' && (
+                <div className="space-y-6">
+                  {selectedTopic.practical_exercises?.map((pe, idx) => (
+                    <div key={idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-800/40 space-y-2">
+                      <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center space-x-2">
+                        <Terminal className="w-4 h-4" />
+                        <span>{pe.title}</span>
+                      </h4>
+                      <p className="text-xs text-slate-700 dark:text-slate-300">
+                        {pe.instructions}
+                      </p>
+                    </div>
+                  ))}
+
+                  {selectedTopic.mini_project && (
+                    <div className="p-5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/20 dark:bg-indigo-950/20 space-y-3">
+                      <h4 className="text-sm font-bold text-indigo-700 dark:text-indigo-400 flex items-center space-x-2">
+                        <Sparkles className="w-4 h-4" />
+                        <span>{selectedTopic.mini_project.title}</span>
+                      </h4>
+                      <div className="space-y-2">
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Implementation Steps:</span>
+                        <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                          {selectedTopic.mini_project.steps?.map((st, i) => (
+                            <li key={i} className="flex items-start space-x-2">
+                              <span className="font-bold text-indigo-500">{i + 1}.</span>
+                              <span>{st}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="pt-2 text-xs text-slate-500 dark:text-slate-400 italic">
+                        <strong>Expected Outcome:</strong> {selectedTopic.mini_project.expected_outcome}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 4: Resources & Videos */}
+              {activeLearningTab === 'resources' && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center space-x-1.5">
+                      <FileText className="w-4 h-4 text-indigo-500" />
+                      <span>Official Documentation</span>
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selectedTopic.documentation?.map((doc, idx) => (
+                        <a
+                          key={idx}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors flex items-center justify-between group"
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                            {doc.title}
+                          </span>
+                          <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-500" />
+                        </a>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Learning Objectives */}
-                  {selectedTask.learning_objectives && selectedTask.learning_objectives.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center space-x-1.5">
+                      <Video className="w-4 h-4 text-emerald-500" />
+                      <span>Curated Educational Videos</span>
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selectedTopic.curated_videos?.map((vid, idx) => (
+                        <a
+                          key={idx}
+                          href={vid.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors flex items-center justify-between group"
+                        >
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                            {vid.title}
+                          </span>
+                          <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-emerald-500" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: Knowledge Check & Complete */}
+              {activeLearningTab === 'check' && (
+                <div className="space-y-6">
+                  <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 space-y-4">
+                    <div className="flex items-center space-x-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                      <CheckSquare className="w-4 h-4" />
+                      <span>Mandatory Topic Knowledge Check</span>
+                    </div>
+
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {selectedTopic.knowledge_check?.question}
+                    </p>
+
                     <div className="space-y-2">
-                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                        <Target className="w-4 h-4 text-indigo-400" />
-                        <span>Learning Objectives</span>
-                      </h3>
-                      <ul className="grid grid-cols-1 gap-2 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
-                        {selectedTask.learning_objectives.map((obj, idx) => (
-                          <li key={idx} className="text-xs text-slate-300 flex items-start space-x-2">
-                            <span className="text-indigo-400 font-bold">•</span>
-                            <span>{obj}</span>
+                      {selectedTopic.knowledge_check?.options?.map((opt, i) => (
+                        <label
+                          key={i}
+                          onClick={() => setPracticeAnswer(opt)}
+                          className={`flex items-center space-x-3 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                            practiceAnswer === opt
+                              ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-bold'
+                              : 'border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="practiceOption"
+                            checked={practiceAnswer === opt}
+                            onChange={() => setPracticeAnswer(opt)}
+                            className="text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        {selectedTopic.completed ? 'Topic Verified & Completed ✓' : 'Finish Learning Requirements'}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {selectedTopic.completed
+                          ? `Completed on ${new Date(selectedTopic.completed_at).toLocaleDateString()}. This topic counts towards your phase progress.`
+                          : 'Select the correct knowledge check answer above to complete this topic and unlock progress.'}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleCompleteTopic}
+                      disabled={completingTopic || !practiceAnswer || selectedTopic.completed}
+                      className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center space-x-2 ${
+                        selectedTopic.completed
+                          ? 'bg-emerald-500 text-white cursor-not-allowed opacity-90'
+                          : 'bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white'
+                      }`}
+                    >
+                      {completingTopic ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      )}
+                      <span>{selectedTopic.completed ? 'Completed ✓' : 'Mark Topic as Completed'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-between text-xs">
+              <span className="text-slate-400">
+                Study sequence: Read Lesson → Inspect Code → Solve Exercises → Verify Knowledge Check
+              </span>
+              <button
+                onClick={() => setSelectedTopic(null)}
+                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. PHASE ASSESSMENT MODAL (80% Passing Rule) (Section 7)                 */}
+      {/* ========================================================================= */}
+      {assessmentPhase && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white">
+              <div>
+                <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider">
+                  Phase Assessment • {assessmentPhase.difficulty}
+                </span>
+                <h3 className="text-lg font-black text-white">
+                  {assessmentPhase.name} Assessment
+                </h3>
+              </div>
+              <button
+                onClick={() => setAssessmentPhase(null)}
+                className="p-1.5 rounded-lg text-indigo-200 hover:text-white hover:bg-white/10"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Assessment Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm">
+              {assessmentLoading && (
+                <div className="py-12 flex flex-col items-center justify-center space-y-3 text-slate-500">
+                  <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                  <span className="text-xs font-semibold">Generating randomized assessment questions...</span>
+                </div>
+              )}
+
+              {/* Assessment Results View */}
+              {!assessmentLoading && assessmentResult && (
+                <div className="space-y-6 animate-in fade-in">
+                  <div className={`p-6 rounded-2xl border text-center space-y-3 ${
+                    assessmentResult.passed
+                      ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-800'
+                  }`}>
+                    <div className="flex justify-center">
+                      {assessmentResult.passed ? (
+                        <div className="p-3 rounded-full bg-emerald-500 text-white">
+                          <CheckCircle2 className="w-10 h-10" />
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-full bg-red-500 text-white">
+                          <AlertTriangle className="w-10 h-10" />
+                        </div>
+                      )}
+                    </div>
+
+                    <h4 className="text-2xl font-black text-slate-900 dark:text-white">
+                      Score: {assessmentResult.percentage}% ({assessmentResult.score} of {assessmentResult.total_questions} Correct)
+                    </h4>
+
+                    <div className="flex justify-center space-x-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider ${
+                        assessmentResult.passed
+                          ? 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
+                          : 'bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200'
+                      }`}>
+                        {assessmentResult.passed ? 'PASSED (>= 80%)' : 'FAILED (< 80%)'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 dark:text-slate-400 max-w-lg mx-auto">
+                      {assessmentResult.message}
+                    </p>
+                  </div>
+
+                  {/* Weak Topics to Revise */}
+                  {assessmentResult.weak_topics?.length > 0 && (
+                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-2">
+                      <h4 className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center space-x-1.5">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Recommended Topics for Revision</span>
+                      </h4>
+                      <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                        {assessmentResult.weak_topics.map((wt, i) => (
+                          <li key={i} className="flex items-center space-x-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>{wt}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {/* Topics and Subtopics Checklist */}
+                  {/* Itemized Review */}
                   <div className="space-y-4">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center space-x-2">
-                      <CheckSquare className="w-4 h-4 text-emerald-400" />
-                      <span>Topics & Subtopics Checklist</span>
-                    </h3>
-
-                    {selectedTask.topics.map((topic) => (
-                      <div key={topic.id} className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-bold text-white flex items-center space-x-2">
-                            <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-                            <span>{topic.title}</span>
-                          </h4>
-                          {topic.completed && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              Topic Completed ✓
-                            </span>
-                          )}
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Answer Review & Explanations
+                    </h4>
+                    {assessmentResult.reviews?.map((rev, rIdx) => (
+                      <div
+                        key={rIdx}
+                        className={`p-4 rounded-xl border text-xs space-y-2 ${
+                          rev.is_correct
+                            ? 'bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/40'
+                            : 'bg-red-50/40 dark:bg-red-950/10 border-red-200 dark:border-red-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="text-slate-800 dark:text-slate-200">
+                            Q{rIdx + 1}: {rev.question}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            rev.is_correct ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+                          }`}>
+                            {rev.is_correct ? 'Correct' : 'Incorrect'}
+                          </span>
                         </div>
-
-                        {topic.description && (
-                          <p className="text-xs text-slate-400">{topic.description}</p>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          {topic.subtopics && topic.subtopics.map((sub) => (
-                            <div 
-                              key={sub.id}
-                              onClick={() => handleToggleSubtopic(topic.id, sub.id, sub.completed)}
-                              className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                                sub.completed 
-                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' 
-                                  : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
-                              }`}
-                            >
-                              <span className="text-xs font-medium">{sub.title}</span>
-                              {sub.completed ? (
-                                <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-                              ) : (
-                                <Square className="w-4 h-4 text-slate-600 shrink-0" />
-                              )}
-                            </div>
-                          ))}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <span className="text-slate-400">Your Answer: </span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{rev.user_answer}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Correct Answer: </span>
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{rev.correct_answer}</span>
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                          <strong>Explanation:</strong> {rev.explanation}
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  {/* Task Status Actions */}
-                  <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-                    <div>
-                      {selectedTask.status === 'NOT_STARTED' && (
-                        <button
-                          onClick={() => handleStartTask(selectedTask.id)}
-                          disabled={updatingTaskId === selectedTask.id}
-                          className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-2 shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
-                        >
-                          {updatingTaskId === selectedTask.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                          <span>Start Learning</span>
-                        </button>
-                      )}
-
-                      {selectedTask.status === 'IN_PROGRESS' && (
-                        <button
-                          onClick={() => handleCompleteLearning(selectedTask.id)}
-                          disabled={updatingTaskId === selectedTask.id}
-                          className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center space-x-2 shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
-                        >
-                          {updatingTaskId === selectedTask.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                          <span>Mark Learning Complete</span>
-                        </button>
-                      )}
-
-                      {(selectedTask.status === 'LEARNING_COMPLETED' || selectedTask.status === 'FAILED' || selectedTask.status === 'VERIFIED') && (
-                        <button
-                          onClick={() => handleGenerateQuestions(selectedTask.id)}
-                          disabled={quizLoading}
-                          className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-2 shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
-                        >
-                          {quizLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <HelpCircle className="w-4 h-4" />}
-                          <span>{selectedTask.status === 'FAILED' ? 'Generate New Questions (Retry)' : 'Generate Verification Questions'}</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="text-right text-xs text-slate-400">
-                      <span>Verification Rule: <strong className="text-white">&ge; 70% Score Required</strong></span>
-                    </div>
-                  </div>
                 </div>
               )}
 
-              {/* TAB 2: VERIFICATION QUIZ & RESULTS */}
-              {activeTab === 'quiz' && (
+              {/* Assessment Questions View */}
+              {!assessmentLoading && !assessmentResult && assessmentData && (
                 <div className="space-y-6">
-                  {!isQuizActive && !quizResult && (
-                    <div className="p-8 text-center space-y-4 bg-slate-950/60 rounded-3xl border border-slate-800">
-                      <HelpCircle className="w-12 h-12 text-indigo-400 mx-auto" />
-                      <h3 className="text-lg font-bold text-white">Knowledge Verification Assessment</h3>
-                      <p className="text-xs text-slate-400 max-w-md mx-auto">
-                        To verify your task completion, you must pass a dynamic 5-question test generated strictly from this task's topics.
-                      </p>
-                      <button
-                        onClick={() => handleGenerateQuestions(selectedTask.id)}
-                        disabled={quizLoading}
-                        className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-2 mx-auto shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
-                      >
-                        {quizLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                        <span>Generate 5 New Questions</span>
-                      </button>
-                    </div>
-                  )}
+                  <div className="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 text-xs text-indigo-900 dark:text-indigo-200 flex items-center justify-between">
+                    <span>
+                      Pass Requirement: <strong>80% or higher ({Math.ceil(assessmentData.total_questions * 0.8)} of {assessmentData.total_questions} correct)</strong>
+                    </span>
+                    <span className="font-bold">
+                      Answered: {Object.keys(assessmentAnswers).length} / {assessmentData.total_questions}
+                    </span>
+                  </div>
 
-                  {/* ACTIVE QUIZ SCREEN */}
-                  {isQuizActive && quizQuestions.length > 0 && (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                        <div>
-                          <span className="text-xs text-indigo-400 font-bold">Verification Test</span>
-                          <h4 className="text-sm font-bold text-white">Answer all 5 questions</h4>
-                        </div>
-                        <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-xl">
-                          Attempt #{selectedTask.attempts_count + 1}
-                        </span>
+                  {assessmentData.questions?.map((q, idx) => (
+                    <div
+                      key={q.question_id}
+                      className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-850 space-y-3"
+                    >
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                        <span>Question {idx + 1} of {assessmentData.total_questions}</span>
+                        <span className="text-indigo-500">{q.topic}</span>
                       </div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {q.question}
+                      </p>
 
-                      <div className="space-y-6">
-                        {quizQuestions.map((q, idx) => (
-                          <div key={q.question_id} className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-indigo-400">
-                                Question {idx + 1} of {quizQuestions.length}
-                              </span>
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                                Topic: {q.topic}
-                              </span>
-                            </div>
-
-                            <p className="text-sm font-semibold text-white leading-relaxed">
-                              {q.question}
-                            </p>
-
-                            <div className="grid grid-cols-1 gap-2 pt-2">
-                              {q.options.map((opt, oIdx) => {
-                                const isSelected = userAnswers[q.question_id] === opt;
-                                return (
-                                  <label
-                                    key={oIdx}
-                                    className={`p-3 rounded-xl border flex items-center space-x-3 cursor-pointer transition-all text-xs ${
-                                      isSelected
-                                        ? 'bg-indigo-600/20 border-indigo-500 text-white font-bold'
-                                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
-                                    }`}
-                                  >
-                                    <input
-                                      type="radio"
-                                      name={`question_${q.question_id}`}
-                                      value={opt}
-                                      checked={isSelected}
-                                      onChange={() => handleOptionSelect(q.question_id, opt)}
-                                      className="hidden"
-                                    />
-                                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                      isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'
-                                    }`}>
-                                      {String.fromCharCode(65 + oIdx)}
-                                    </span>
-                                    <span>{opt}</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </div>
+                      <div className="space-y-2">
+                        {q.options?.map((opt, oIdx) => (
+                          <label
+                            key={oIdx}
+                            onClick={() => handleSelectAnswer(q.question_id, opt)}
+                            className={`flex items-center space-x-3 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                              assessmentAnswers[q.question_id] === opt
+                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-bold'
+                                : 'border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`q_${q.question_id}`}
+                              checked={assessmentAnswers[q.question_id] === opt}
+                              onChange={() => handleSelectAnswer(q.question_id, opt)}
+                              className="text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span>{opt}</span>
+                          </label>
                         ))}
                       </div>
-
-                      <button
-                        onClick={handleSubmitQuiz}
-                        disabled={Object.keys(userAnswers).length < quizQuestions.length || quizLoading}
-                        className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50"
-                      >
-                        {quizLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                        <span>Submit Verification Answers</span>
-                      </button>
                     </div>
-                  )}
-
-                  {/* QUIZ RESULT SCREEN */}
-                  {quizResult && (
-                    <div className="space-y-6 animate-fadeIn">
-                      <div className={`p-6 rounded-3xl border text-center space-y-3 ${
-                        quizResult.passed 
-                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' 
-                          : 'bg-red-500/10 border-red-500/40 text-red-300'
-                      }`}>
-                        {quizResult.passed ? (
-                          <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-                        ) : (
-                          <XCircle className="w-12 h-12 text-red-400 mx-auto" />
-                        )}
-
-                        <h3 className="text-xl font-extrabold text-white">
-                          {quizResult.passed ? '✓ Learning Verified Successfully!' : '✗ Verification Not Passed'}
-                        </h3>
-
-                        <div className="flex justify-center items-center space-x-6 text-sm font-bold">
-                          <div>
-                            <span className="text-slate-400 block text-xs font-normal">Score</span>
-                            <span className="text-2xl text-white">{quizResult.score} / {quizResult.total_questions}</span>
-                          </div>
-                          <div className="h-8 w-px bg-slate-800"></div>
-                          <div>
-                            <span className="text-slate-400 block text-xs font-normal">Percentage</span>
-                            <span className="text-2xl text-white">{quizResult.percentage}%</span>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-slate-300 max-w-md mx-auto">
-                          {quizResult.message}
-                        </p>
-                      </div>
-
-                      {/* Topic Performance Breakdown */}
-                      {quizResult.topic_performance && (
-                        <div className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-                            Topic Performance Breakdown
-                          </h4>
-                          <div className="space-y-3">
-                            {Object.entries(quizResult.topic_performance).map(([topic, pct]) => (
-                              <div key={topic} className="space-y-1">
-                                <div className="flex justify-between text-xs font-semibold">
-                                  <span className="text-slate-300">{topic}</span>
-                                  <span className={pct >= 70 ? 'text-emerald-400' : 'text-red-400'}>{pct}%</span>
-                                </div>
-                                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                                  <div 
-                                    className={`h-full rounded-full ${pct >= 70 ? 'bg-emerald-400' : 'bg-red-400'}`}
-                                    style={{ width: `${pct}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Weak topics warning */}
-                      {quizResult.weak_topics && quizResult.weak_topics.length > 0 && (
-                        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1">
-                          <span className="font-bold flex items-center space-x-1">
-                            <AlertTriangle className="w-4 h-4 text-amber-400" />
-                            <span>Recommended Topics to Review:</span>
-                          </span>
-                          <p className="text-slate-300">{quizResult.weak_topics.join(', ')}</p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center space-x-3">
-                        {!quizResult.passed && (
-                          <button
-                            onClick={() => setActiveTab('learning')}
-                            className="w-1/2 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all"
-                          >
-                            Review Topics
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => handleGenerateQuestions(selectedTask.id)}
-                          className={`py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center space-x-2 transition-all ${
-                            quizResult.passed ? 'w-full' : 'w-1/2'
-                          }`}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          <span>Generate NEW Questions (Retry)</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
+            </div>
 
-              {/* TAB 3: ATTEMPT HISTORY */}
-              {activeTab === 'history' && (
-                <div className="space-y-4">
-                  {attemptHistory.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 bg-slate-950/60 rounded-2xl border border-slate-800 text-xs">
-                      No verification attempts recorded yet for this task.
-                    </div>
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-between">
+              <button
+                onClick={() => setAssessmentPhase(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                Close
+              </button>
+
+              {!assessmentResult && assessmentData && (
+                <button
+                  onClick={handleSubmitAssessment}
+                  disabled={assessmentLoading || Object.keys(assessmentAnswers).length < (assessmentData.total_questions || 10)}
+                  className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center space-x-2"
+                >
+                  {assessmentLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <div className="space-y-3">
-                      {attemptHistory.map((att) => (
-                        <div key={att.id} className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                          <div className="space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs font-bold text-white">Attempt #{att.attempt_number}</span>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                att.passed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                              }`}>
-                                {att.passed ? 'PASSED ✓' : 'FAILED ✗'}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-slate-500 block">
-                              Date: {att.created_at ? new Date(att.created_at).toLocaleString() : 'Recent'}
-                            </span>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-base font-extrabold text-white">{att.percentage}%</span>
-                            <span className="text-[11px] text-slate-400 block">{att.score} / {att.total_questions} Correct</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <Check className="w-4 h-4 stroke-[3]" />
                   )}
-                </div>
+                  <span>Submit Assessment for Grading</span>
+                </button>
+              )}
+
+              {assessmentResult && !assessmentResult.passed && (
+                <button
+                  onClick={() => handleOpenAssessment(assessmentPhase)}
+                  className="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center space-x-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Retry Phase Assessment</span>
+                </button>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* 5. FLOATING GEMINI CHATBOT (ROADMAP PAGE ONLY - Section 9)               */}
+      {/* ========================================================================= */}
+      <ChatbotWidget />
     </div>
   );
 };

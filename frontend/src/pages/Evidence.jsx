@@ -132,7 +132,7 @@ const Evidence = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center space-x-3">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center space-x-3">
             <ShieldCheck className="w-8 h-8 text-indigo-400" />
             <span>Employability Evidence Engine</span>
           </h1>

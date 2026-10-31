@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from '../components/ThemeToggle';
-import { Sparkles, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import logo from '../assets/career-guidance-logo.png';
+import { Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,16 +38,9 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f6f8] dark:bg-[#090d16] flex flex-col items-center justify-center p-4 transition-colors">
-      {/* Top right theme toggle */}
-      <div className="absolute top-6 right-6">
-        <ThemeToggle />
-      </div>
-
       <div className="w-full max-w-md bg-white dark:bg-[#111827] p-8 md:p-10 rounded-3xl border border-gray-200/80 dark:border-slate-800 shadow-sm space-y-6 animate-fade-in">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 items-center justify-center shadow-xs mb-1">
-            <Sparkles className="w-6 h-6 text-indigo-400 dark:text-indigo-600" />
-          </div>
+          <img src={logo} alt="AI Career Guidance" className="auth-brand-logo" />
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Welcome to CareerAI
           </h1>

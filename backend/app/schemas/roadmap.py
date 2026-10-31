@@ -66,7 +66,7 @@ class SkillLevelSchema(BaseModel):
     assessment_status: str = "NOT_STARTED"  # NOT_STARTED, IN_PROGRESS, PASSED, FAILED
     quiz_score: Optional[int] = None
     attempts_count: int = 0
-    passing_score: int = 70
+    passing_score: int = 80
     time_limit_minutes: int = 30
     completed_at: Optional[str] = None
 
@@ -99,6 +99,9 @@ class ToggleLevelTopicRequest(BaseModel):
     completed: Optional[bool] = None
     practice_completed: Optional[bool] = None
 
+class CompleteTopicRequest(BaseModel):
+    practice_answer: Optional[str] = None
+
 class RoadmapGenerateRequest(BaseModel):
     career_id: Optional[str] = "ai-engineer"
 
@@ -124,7 +127,7 @@ class RoadmapTaskSchema(BaseModel):
     explanation: str = ""
     topics: List[TopicSchema] = []
     learning_objectives: List[str] = []
-    passing_score: int = 70
+    passing_score: int = 80
     verification_status: str = "Not Started"
     quiz_score: Optional[int] = None
     attempts_count: int = 0
@@ -133,21 +136,30 @@ class RoadmapTaskSchema(BaseModel):
     completed_at: Optional[str] = None
 
 class RoadmapResponse(BaseModel):
-    id: str
+    id: Optional[str] = None
     user_id: str
     career_id: str
     career_title: str
-    target_employability: int
-    current_employability: int
-    employability_gap: int
-    total_tasks: int
-    verified_tasks: int = 0
-    completed_tasks: int = 0
+    description: Optional[str] = None
+    target_employability: Optional[int] = 80
+    current_employability: Optional[int] = 50
+    employability_gap: Optional[int] = 30
+    total_tasks: Optional[int] = 0
+    verified_tasks: Optional[int] = 0
+    completed_tasks: Optional[int] = 0
     progress_percentage: int = 0
-    phases: List[str] = []
-    tasks: List[RoadmapTaskSchema] = []
-    skills: List[SkillOverviewSchema] = []
-    last_updated: str
+    overall_progress: Optional[int] = 0
+    completed_topics_count: Optional[int] = 0
+    total_topics_count: Optional[int] = 0
+    phases: List[Any] = []
+    tasks: Optional[List[RoadmapTaskSchema]] = []
+    skills: Optional[List[SkillOverviewSchema]] = []
+    completed_topics: Optional[List[Any]] = []
+    pending_topics: Optional[List[Any]] = []
+    current_learning_topic: Optional[Any] = None
+    next_recommended_action: Optional[str] = None
+    passing_score_requirement: Optional[int] = 80
+    last_updated: Optional[str] = None
 
 # ============================================================================
 # Level Assessment Schemas (20 Questions: 15 MCQ + 5 Practical)
@@ -156,13 +168,13 @@ class RoadmapResponse(BaseModel):
 class AssessmentQuestionClientSchema(BaseModel):
     question_id: str
     question_number: int
-    type: str  # "mcq" | "practical"
+    type: str = "mcq"  # "mcq" | "practical"
     question: str
     topic: str
     difficulty: str
     options: List[str] = []
     starter_code: Optional[str] = None
-    practical_type: Optional[str] = None  # "code_output", "code_snippet", "sql_query", "numerical", "short_answer"
+    practical_type: Optional[str] = None
 
 class AssessmentGenerateResponse(BaseModel):
     level_id: str
@@ -173,7 +185,7 @@ class AssessmentGenerateResponse(BaseModel):
     questions: List[AssessmentQuestionClientSchema]
 
 class AssessmentSubmissionRequest(BaseModel):
-    answers: Dict[str, str]  # question_id -> answer
+    answers: Dict[str, str]
 
 class QuestionReviewSchema(BaseModel):
     question_id: str
@@ -197,7 +209,7 @@ class AssessmentResultResponse(BaseModel):
     status: str  # "PASSED" | "FAILED"
     passing_score: int
     attempts_count: int
-    topic_performance: Dict[str, Dict[str, int]]  # topic -> {total, correct, percentage}
+    topic_performance: Dict[str, Any]
     strengths: List[str]
     weak_topics: List[str]
     recommended_revisions: List[Dict[str, str]]
@@ -251,15 +263,16 @@ class ProgressDashboardResponse(BaseModel):
     user_id: str
     career_title: str
     overall_completion_percentage: int
-    skills_progress: List[Dict[str, Any]]
-    levels_progress: Dict[str, int]
-    topics_completed: int
-    topics_remaining: int
-    total_learning_hours_completed: float
-    total_learning_hours_estimated: float
-    assessment_attempts_total: int
-    assessment_average_score: int
-    passed_levels_count: int
-    total_levels_count: int = 21
+    skills_progress: Optional[List[Dict[str, Any]]] = []
+    levels_progress: Optional[Dict[str, int]] = {}
+    topics_completed: int = 0
+    topics_remaining: int = 0
+    total_learning_hours_completed: float = 0.0
+    total_learning_hours_estimated: float = 0.0
+    assessment_attempts_total: int = 0
+    assessment_average_score: int = 0
+    passed_levels_count: int = 0
+    total_levels_count: int = 3
     recommended_next_step: Optional[Dict[str, Any]] = None
     weak_topics_to_revise: List[Dict[str, Any]] = []
+    phases: Optional[List[Dict[str, Any]]] = []

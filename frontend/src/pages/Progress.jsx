@@ -141,11 +141,11 @@ const Progress = () => {
         <div className="h-72 w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={historyData} margin={{ top: 15, right: 20, left: -15, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-              <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} domain={[30, 100]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e9e3f5" />
+              <XAxis dataKey="date" stroke="#716a7c" tick={{ fontSize: 11 }} />
+              <YAxis stroke="#716a7c" tick={{ fontSize: 11 }} domain={[30, 100]} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '14px', fontSize: '12px' }}
+                contentStyle={{ backgroundColor: '#ffffff', borderColor: '#d8d0e4', borderRadius: '14px', fontSize: '12px', color: '#211b2b' }}
                 formatter={(value) => [`${value}%`, 'Employability Score']}
                 labelFormatter={(label, payload) => {
                   const milestone = payload?.[0]?.payload?.milestone;
@@ -155,10 +155,10 @@ const Progress = () => {
               <Line 
                 type="monotone" 
                 dataKey="score" 
-                stroke="#10b981" 
+                stroke="#6d28d9"
                 strokeWidth={3} 
-                dot={{ r: 5, fill: '#10b981', stroke: '#0f172a', strokeWidth: 2 }}
-                activeDot={{ r: 8, fill: '#6366f1' }}
+                dot={{ r: 5, fill: '#6d28d9', stroke: '#ffffff', strokeWidth: 2 }}
+                activeDot={{ r: 8, fill: '#5b21b6' }}
                 name="Employability"
               />
             </LineChart>

@@ -1,41 +1,20 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import logo from '../assets/career-guidance-logo.png';
 import { 
-  Sparkles, 
-  User, 
   LogOut, 
-  Bell, 
   HelpCircle, 
   Zap, 
   Menu, 
   X,
-  Compass,
-  Gift,
-  Sun,
-  Moon
+  Gift
 } from 'lucide-react';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-
-  const getPageTitle = () => {
-    const path = location.pathname;
-    if (path === '/dashboard') return 'AI Career Guidance';
-    if (path === '/profile') return 'Student Profile';
-    if (path === '/assessment') return 'Skill Assessment';
-    if (path === '/recommendations') return 'Career Recommendations';
-    if (path.startsWith('/career')) return 'Career Analysis';
-    if (path === '/evidence') return 'Evidence Verification';
-    if (path === '/roadmap') return 'Adaptive Roadmap';
-    if (path === '/progress') return 'Progress Tracker';
-    return 'CareerAI';
-  };
 
   return (
     <>
@@ -50,10 +29,11 @@ const Navbar = () => {
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          <div className="flex items-center space-x-3">
-            <h1 className="text-base md:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center space-x-2">
-              <span>{getPageTitle()}</span>
-            </h1>
+          <div className="flex items-center space-x-3 min-w-0">
+            <img src={logo} alt="AI Career Guidance" className="w-8 h-6 object-contain shrink-0" />
+            <span className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight whitespace-nowrap">
+              Career Guidance
+            </span>
           </div>
         </div>
 
@@ -86,16 +66,6 @@ const Navbar = () => {
           >
             <Gift className="w-4 h-4" />
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 absolute top-2 right-2 ring-2 ring-white dark:ring-slate-900" />
-          </button>
-
-          {/* Mobile Theme Quick Toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="md:hidden p-2 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-            title="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
 
           {/* User profile avatar pill */}

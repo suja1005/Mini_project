@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from './ThemeToggle';
+import logo from '../assets/career-guidance-logo.png';
 import { 
-  Sparkles,
   Search,
   MessageSquare,
   LayoutDashboard, 
@@ -46,7 +45,7 @@ const Sidebar = () => {
   }, []);
 
   const navItems = [
-    { to: '/dashboard', label: 'AI Chat & Dashboard', icon: MessageSquare, badge: null },
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: null },
     { to: '/profile', label: 'My Profile', icon: UserCheck, badge: null },
     { to: '/assessment', label: 'Assessment', icon: ClipboardCheck, badge: null },
     { to: '/recommendations', label: 'Recommendations', icon: Compass, badge: null },
@@ -66,7 +65,7 @@ const Sidebar = () => {
   const activeLinkClass = 
     "flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-indigo-50/90 text-indigo-700 font-semibold text-sm transition-all border border-indigo-100/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-500/20 shadow-xs";
   const inactiveLinkClass = 
-    "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 font-medium text-sm transition-all dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50";
+    "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-white hover:bg-indigo-600 font-medium text-sm transition-all dark:text-slate-400 dark:hover:text-white dark:hover:bg-indigo-600";
 
   return (
     <>
@@ -75,11 +74,9 @@ const Sidebar = () => {
           {/* Brand header */}
           <div className="flex items-center justify-between px-2 pt-1">
             <NavLink to="/dashboard" className="flex items-center space-x-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-xs transition-transform group-hover:scale-105">
-                <Sparkles className="w-4 h-4 text-indigo-400 dark:text-indigo-600" />
-              </div>
-              <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-                CareerAI
+              <img src={logo} alt="AI Career Guidance" className="w-8 h-6 object-contain shrink-0 transition-transform group-hover:scale-105" />
+              <span className="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">
+                Career Guidance
               </span>
             </NavLink>
             <button 
@@ -173,13 +170,8 @@ const Sidebar = () => {
           </div>
         </div>
 
-        {/* Bottom Section: Theme Toggle & User Info */}
+        {/* Bottom Section: User Info */}
         <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-3">
-          {/* Theme switcher segmented pill */}
-          <div className="flex justify-start px-1">
-            <ThemeToggle className="w-full justify-between" />
-          </div>
-
           {/* User profile row */}
           <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-gray-200/60 dark:border-slate-700/60">
             <div className="flex items-center space-x-2.5 min-w-0">
