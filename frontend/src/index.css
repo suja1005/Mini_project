@@ -168,6 +168,47 @@ html:not(.dark) {
     color: #ffffff !important;
   }
 
+  :is(
+    [class^="bg-indigo-"], [class*=" bg-indigo-"],
+    [class^="bg-violet-"], [class*=" bg-violet-"],
+    [class^="bg-purple-"], [class*=" bg-purple-"],
+    [class^="bg-emerald-"], [class*=" bg-emerald-"],
+    [class^="bg-green-"], [class*=" bg-green-"],
+    [class^="bg-teal-"], [class*=" bg-teal-"],
+    [class^="bg-cyan-"], [class*=" bg-cyan-"],
+    [class^="bg-sky-"], [class*=" bg-sky-"],
+    [class^="bg-blue-"], [class*=" bg-blue-"],
+    [class^="bg-amber-"], [class*=" bg-amber-"],
+    [class^="bg-yellow-"], [class*=" bg-yellow-"],
+    [class^="bg-orange-"], [class*=" bg-orange-"],
+    [class^="bg-red-"], [class*=" bg-red-"],
+    [class^="bg-rose-"], [class*=" bg-rose-"],
+    [class^="bg-pink-"], [class*=" bg-pink-"],
+    [class^="bg-fuchsia-"], [class*=" bg-fuchsia-"],
+    [class*="bg-gradient"]
+  ).text-white,
+  :is(
+    [class^="bg-indigo-"], [class*=" bg-indigo-"],
+    [class^="bg-violet-"], [class*=" bg-violet-"],
+    [class^="bg-purple-"], [class*=" bg-purple-"],
+    [class^="bg-emerald-"], [class*=" bg-emerald-"],
+    [class^="bg-green-"], [class*=" bg-green-"],
+    [class^="bg-teal-"], [class*=" bg-teal-"],
+    [class^="bg-cyan-"], [class*=" bg-cyan-"],
+    [class^="bg-sky-"], [class*=" bg-sky-"],
+    [class^="bg-blue-"], [class*=" bg-blue-"],
+    [class^="bg-amber-"], [class*=" bg-amber-"],
+    [class^="bg-yellow-"], [class*=" bg-yellow-"],
+    [class^="bg-orange-"], [class*=" bg-orange-"],
+    [class^="bg-red-"], [class*=" bg-red-"],
+    [class^="bg-rose-"], [class*=" bg-rose-"],
+    [class^="bg-pink-"], [class*=" bg-pink-"],
+    [class^="bg-fuchsia-"], [class*=" bg-fuchsia-"],
+    [class*="bg-gradient"]
+  ) .text-white {
+    color: #ffffff !important;
+  }
+
   /* Badges with dark text */
   .bg-amber-500 {
     color: #1e293b !important;
@@ -198,6 +239,10 @@ html:not(.dark) {
   .fixed.bg-slate-900\/50 {
     background-color: rgba(15, 23, 42, 0.45) !important;
   }
+}
+
+html:not(.dark) .assessment-header .assessment-header-copy {
+  color: #ffffff !important;
 }
 
 /* Custom modern scrollbars */
@@ -485,10 +530,6 @@ textarea::placeholder {
 .glass-card-hover:hover {
   border-color: #c4a8f4;
   box-shadow: var(--card-shadow-hover);
-}
-
-html:not(.dark) .text-white {
-  color: #ffffff !important;
 }
 
 @media (max-width: 640px) {

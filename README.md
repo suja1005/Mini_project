@@ -42,6 +42,12 @@ The platform addresses critical student questions through explainable AI models:
                             LLM Explanations Service
 ```
 
+### Student workflow
+
+Student Profile → Career Recommendation → Career Selection → Career Decision & Risk Analysis → Employability Evidence Engine → Practical Skill Assessment → Weak Skill Identification → Personalized Adaptive Roadmap → Progress Tracking.
+
+The roadmap is available after a practical assessment attempt. Its additional skill plan prioritizes measured weak areas, while the existing career phases and progress history remain intact.
+
 ---
 
 ## 💻 Tech Stack

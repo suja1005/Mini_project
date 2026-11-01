@@ -25,6 +25,23 @@ class ProjectEvidenceResponse(BaseModel):
     verified_score: int
     created_at: str
 
+class CertificateEvidenceCreate(BaseModel):
+    title: str = Field(..., min_length=2)
+    issuer: str = Field(..., min_length=2)
+    skills: List[str] = Field(..., min_length=1)
+    issue_date: Optional[str] = ""
+    credential_url: Optional[str] = ""
+
+class CertificateEvidenceResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    issuer: str
+    skills: List[str]
+    issue_date: Optional[str] = ""
+    credential_url: Optional[str] = ""
+    created_at: str
+
 class SkillEvidenceItem(BaseModel):
     skill: str
     claimed_score: int
@@ -46,6 +63,7 @@ class EvidenceOverviewResponse(BaseModel):
     average_confidence: int
     overall_evidence_status: str
     projects: List[ProjectEvidenceResponse] = []
+    certificates: List[CertificateEvidenceResponse] = []
 
 class VerifiedSkillsResponse(BaseModel):
     user_id: str

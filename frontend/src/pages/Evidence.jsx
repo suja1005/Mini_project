@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { evidenceService } from '../services/evidenceService';
 import PhaseBanner from '../components/PhaseBanner';
 import MetricCard from '../components/MetricCard';
@@ -16,7 +17,8 @@ import {
   Info,
   Award,
   Layers,
-  FileText
+  FileText,
+  ArrowRight
 } from 'lucide-react';
 
 const Evidence = () => {
@@ -24,6 +26,7 @@ const Evidence = () => {
   const [recalculating, setRecalculating] = useState(false);
   const [overview, setOverview] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showCertificateForm, setShowCertificateForm] = useState(false);
   const [selectedSkillNotes, setSelectedSkillNotes] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -39,10 +42,19 @@ const Evidence = () => {
     student_role: 'Full Stack Developer'
   });
   const [availableSkills] = useState([
-    'Python', 'Machine Learning', 'SQL', 'Git', 'Data Analysis', 
-    'JavaScript', 'HTML/CSS', 'Java', 'Cloud', 'Cybersecurity'
+    'Python', 'Java', 'C', 'C++', 'JavaScript', 'HTML', 'CSS', 'React',
+    'SQL', 'MongoDB', 'Machine Learning', 'Data Analysis', 'Computer Networks',
+    'Git', 'Problem Solving', 'Communication', 'Analytical Thinking', 'Aptitude'
   ]);
   const [savingProject, setSavingProject] = useState(false);
+  const [savingCertificate, setSavingCertificate] = useState(false);
+  const [certificateData, setCertificateData] = useState({
+    title: '',
+    issuer: '',
+    skills: [],
+    issue_date: '',
+    credential_url: ''
+  });
 
   const fetchEvidence = async () => {
     setLoading(true);
@@ -118,6 +130,37 @@ const Evidence = () => {
     }
   };
 
+  const handleSaveCertificate = async (e) => {
+    e.preventDefault();
+    if (!certificateData.title.trim() || !certificateData.issuer.trim() || certificateData.skills.length === 0) {
+      alert('Please provide a certificate title, issuer, and at least one related skill.');
+      return;
+    }
+    setSavingCertificate(true);
+    try {
+      await evidenceService.addCertificateEvidence(certificateData);
+      setCertificateData({ title: '', issuer: '', skills: [], issue_date: '', credential_url: '' });
+      setShowCertificateForm(false);
+      setSuccessMessage('Certificate evidence saved. Practical assessment is still required for skill verification.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+      await fetchEvidence();
+    } catch (err) {
+      console.error('Error adding certificate evidence:', err);
+      alert(err.response?.data?.detail || 'Failed to save certificate evidence. Please try again.');
+    } finally {
+      setSavingCertificate(false);
+    }
+  };
+
+  const handleCertificateSkillToggle = (skill) => {
+    setCertificateData((prev) => ({
+      ...prev,
+      skills: prev.skills.includes(skill)
+        ? prev.skills.filter((item) => item !== skill)
+        : [...prev.skills, skill]
+    }));
+  };
+
   if (loading) {
     return (
       <div className="h-64 flex flex-col items-center justify-center space-y-3 text-slate-400">
@@ -156,13 +199,66 @@ const Evidence = () => {
             <PlusCircle className="w-4 h-4" />
             <span>Add Project Evidence</span>
           </button>
+          <button
+            onClick={() => setShowCertificateForm((visible) => !visible)}
+            className="px-4 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-600 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-violet-700/20 transition-all"
+          >
+            <Award className="w-4 h-4" />
+            <span>Add Certificate</span>
+          </button>
         </div>
       </div>
 
+      <section className="glass-card rounded-3xl border border-slate-800 p-6 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2"><Award className="h-5 w-5 text-violet-400" /><h2 className="text-lg font-bold text-white">Certificate Evidence</h2></div>
+          <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] text-violet-800">{overview?.certificates?.length || 0} submitted</span>
+        </div>
+        <p className="text-xs text-slate-400">Certificates support your evidence record but never verify practical skill on their own.</p>
+        {showCertificateForm && (
+          <form onSubmit={handleSaveCertificate} className="grid gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 md:grid-cols-2">
+            <input required minLength={2} placeholder="Certificate title" value={certificateData.title} onChange={(e) => setCertificateData({ ...certificateData, title: e.target.value })} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <input required minLength={2} placeholder="Issuing organization" value={certificateData.issuer} onChange={(e) => setCertificateData({ ...certificateData, issuer: e.target.value })} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <input type="month" aria-label="Issue month" value={certificateData.issue_date} onChange={(e) => setCertificateData({ ...certificateData, issue_date: e.target.value })} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <input type="url" placeholder="Credential URL (optional)" value={certificateData.credential_url} onChange={(e) => setCertificateData({ ...certificateData, credential_url: e.target.value })} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white" />
+            <div className="md:col-span-2">
+              <p className="mb-2 text-[11px] font-semibold text-slate-300">Related skills</p>
+              <div className="flex flex-wrap gap-2">{availableSkills.map((skill) => <button key={skill} type="button" onClick={() => handleCertificateSkillToggle(skill)} className={`rounded-full border px-3 py-1 text-[11px] ${certificateData.skills.includes(skill) ? 'border-violet-700 bg-violet-700 text-white' : 'border-violet-200 bg-violet-100 text-violet-800'}`}>{skill}</button>)}</div>
+            </div>
+            <div className="flex justify-end gap-2 md:col-span-2">
+              <button type="button" onClick={() => setShowCertificateForm(false)} className="rounded-lg px-4 py-2 text-xs font-semibold text-violet-800">Cancel</button>
+              <button disabled={savingCertificate} className="inline-flex items-center gap-2 rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">{savingCertificate ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}Save certificate</button>
+            </div>
+          </form>
+        )}
+        {overview?.certificates?.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {overview.certificates.map((certificate) => (
+              <article key={certificate.id} className="rounded-xl border border-violet-200 bg-violet-50 p-4">
+                <h3 className="font-bold text-white">{certificate.title}</h3>
+                <p className="mt-1 text-xs text-slate-400">{certificate.issuer}{certificate.issue_date ? ` · ${certificate.issue_date}` : ''}</p>
+                <div className="mt-2 flex flex-wrap gap-1">{certificate.skills.map((skill) => <span key={skill} className="rounded-full bg-violet-100 px-2 py-1 text-[10px] text-violet-800">{skill}</span>)}</div>
+                {certificate.credential_url && <a href={certificate.credential_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-300">Open credential <ExternalLink className="h-3 w-3" /></a>}
+              </article>
+            ))}
+          </div>
+        ) : <p className="rounded-xl bg-violet-50 p-4 text-xs text-violet-800">No certificate evidence submitted.</p>}
+      </section>
+
       <PhaseBanner 
         title="Feature 4 — Transparent Dual-Factor Evidence Verification"
-        message="Verified Skill Score = Assessment Evidence (60%) + Project Evidence (40%). When project evidence is not yet submitted, available evidence is labeled 'Limited Evidence' to preserve academic validity."
+        message="Certificates and projects are supporting evidence—not proof of practical skill. Complete the next career-specific assessment to validate your claimed skills before your adaptive roadmap."
       />
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-900/60 dark:bg-violet-950/25 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-bold text-violet-900 dark:text-violet-200">Next: validate your skills in practice</p>
+          <p className="mt-1 text-xs text-violet-800 dark:text-violet-300">Your selected career and submitted evidence help tailor the questions.</p>
+        </div>
+        <Link to="/practical-assessment" className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-violet-600">
+          Continue to practical assessment <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
 
       {successMessage && (
         <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center space-x-2 animate-fadeIn">
@@ -360,7 +456,7 @@ const Evidence = () => {
 
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {proj.skills_used?.map((sk, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded-lg bg-indigo-600/20 text-indigo-300 text-[10px] font-semibold border border-indigo-500/20">
+                      <span key={i} className="px-2 py-0.5 rounded-lg bg-violet-700 text-white text-[10px] font-semibold border border-violet-700">
                         {sk}
                       </span>
                     ))}

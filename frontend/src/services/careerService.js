@@ -14,5 +14,10 @@ export const careerService = {
   async getCareerAnalysis(careerId) {
     const response = await api.get(`/career-analysis/${careerId}`);
     return response.data;
+  },
+
+  async selectCareer(careerId) {
+    const response = await api.post(`/career-selection/${careerId}`);
+    return response.data;
   }
 };

@@ -38,12 +38,16 @@ def compute_evidence_for_skill(
     if assessment_score is not None and project_score is not None:
         # Transparent academic formula: Assessment 60% + Project 40%
         verified_score = int(round((assessment_score * 0.60) + (project_score * 0.40)))
-        confidence_score = min(95, 45 + 35 + (10 if assessment_score >= 70 else 5))
+        confidence_score = 90 if assessment_score >= 70 else 65
         confidence = "HIGH" if confidence_score >= 75 else "MEDIUM"
-        status = "VERIFIED" if confidence == "HIGH" else "PARTIALLY VERIFIED"
+        status = "VERIFIED" if assessment_score >= 70 else "PARTIALLY VERIFIED"
         notes.append(f"Assessment Evidence: {assessment_score} (60% weight)")
         notes.append(f"Project Evidence: {project_score} (40% weight)")
-        notes.append("Dual-factor empirical verification active")
+        notes.append(
+            "Practical assessment and project evidence both meet verification requirements"
+            if status == "VERIFIED"
+            else "Practical assessment is below the 70% verification threshold"
+        )
     elif assessment_score is not None:
         verified_score = assessment_score
         confidence_score = 65
@@ -89,49 +93,23 @@ async def get_or_create_user_evidence(user_id: str) -> Dict[str, Any]:
     if db is not None:
         profile = await db.student_profiles.find_one({"user_id": user_id})
     if not profile:
-        profile = {
-            "technical_skills": {
-                "Python": 85,
-                "SQL": 60,
-                "Machine Learning": 30,
-                "Git": 70,
-                "JavaScript": 60
-            }
-        }
+        profile = {"technical_skills": {}, "soft_skills": []}
 
     claimed_skills = profile.get("technical_skills", {})
+    for skill in profile.get("soft_skills", []):
+        claimed_skills.setdefault(skill, 50)
 
-    # 2. Retrieve assessment results
-    assessment = None
-    if db is not None:
-        assessment = await db.assessment_results.find_one({"user_id": user_id})
-    
-    skill_assessment_scores: Dict[str, int] = {}
-    if assessment:
-        skill_assessment_scores = assessment.get("skill_scores", {})
-        # If no specific skill_scores map exists yet, populate sensible baselines
-        if not skill_assessment_scores:
-            tech_sc = assessment.get("technical_score", 70)
-            overall_sc = assessment.get("overall_score", 70)
-            # Default derived scores aligned with user prompt scenario
-            skill_assessment_scores = {
-                "Python": max(40, min(95, tech_sc + 2 if tech_sc > 50 else 72)),
-                "SQL": max(35, min(90, tech_sc - 5 if tech_sc > 50 else 65)),
-                "Machine Learning": max(30, min(85, int(tech_sc * 0.6) if tech_sc > 50 else 40)),
-                "Git": max(40, min(90, overall_sc)),
-                "Data Analysis": max(40, min(90, assessment.get("numerical_score", 65)))
-            }
-            if db is not None:
-                await db.assessment_results.update_one(
-                    {"user_id": user_id},
-                    {"$set": {"skill_scores": skill_assessment_scores}}
-                )
+    # Only practical, skill-specific assessments provide assessment evidence.
+    skill_assessment_scores: Dict[str, int] = profile.get("practical_skill_results", {})
 
     # 3. Retrieve user's submitted projects
     projects = []
+    certificates = []
     if db is not None:
         cursor = db.project_evidence.find({"user_id": user_id}).sort("created_at", -1)
         projects = await cursor.to_list(length=50)
+        certificate_cursor = db.certificate_evidence.find({"user_id": user_id}).sort("created_at", -1)
+        certificates = await certificate_cursor.to_list(length=50)
 
     # Compute best project score for each skill
     skill_project_scores: Dict[str, int] = {}
@@ -196,6 +174,19 @@ async def get_or_create_user_evidence(user_id: str) -> Dict[str, Any]:
             "created_at": p.get("created_at", now_str)
         })
 
+    formatted_certificates = []
+    for certificate in certificates:
+        formatted_certificates.append({
+            "id": str(certificate.get("_id", certificate.get("id"))),
+            "user_id": user_id,
+            "title": certificate.get("title", ""),
+            "issuer": certificate.get("issuer", ""),
+            "skills": certificate.get("skills", []),
+            "issue_date": certificate.get("issue_date", ""),
+            "credential_url": certificate.get("credential_url", ""),
+            "created_at": certificate.get("created_at", now_str),
+        })
+
     return {
         "user_id": user_id,
         "skills": evidence_items,
@@ -204,7 +195,8 @@ async def get_or_create_user_evidence(user_id: str) -> Dict[str, Any]:
         "total_partially_verified": partial_count,
         "average_confidence": avg_conf,
         "overall_evidence_status": overall_status,
-        "projects": formatted_projects
+        "projects": formatted_projects,
+        "certificates": formatted_certificates,
     }
 
 async def add_project_evidence(user_id: str, project_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -236,6 +228,25 @@ async def add_project_evidence(user_id: str, project_data: Dict[str, Any]) -> Di
     # Trigger evidence recalculation
     await get_or_create_user_evidence(user_id)
 
+    return doc
+
+async def add_certificate_evidence(user_id: str, certificate_data: Dict[str, Any]) -> Dict[str, Any]:
+    db = get_database()
+    if db is None:
+        raise RuntimeError("Certificate evidence requires an active MongoDB connection.")
+    now_str = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "user_id": user_id,
+        "title": certificate_data["title"],
+        "issuer": certificate_data["issuer"],
+        "skills": certificate_data["skills"],
+        "issue_date": certificate_data.get("issue_date", ""),
+        "credential_url": certificate_data.get("credential_url", ""),
+        "created_at": now_str,
+    }
+    result = await db.certificate_evidence.insert_one(doc)
+    doc["id"] = str(result.inserted_id)
+    await get_or_create_user_evidence(user_id)
     return doc
 
 async def get_verified_skills_dict(user_id: str) -> Dict[str, int]:

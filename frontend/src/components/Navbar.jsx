@@ -41,7 +41,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-2.5">
           {/* Upgrade / Pro pill button (matching image black pill) */}
           <Link
-            to="/roadmap"
+            to="/practical-assessment"
             className="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-semibold shadow-xs transition-all active:scale-95"
           >
             <Zap className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -103,6 +103,7 @@ const Navbar = () => {
             <ol className="text-xs text-slate-600 dark:text-slate-400 space-y-2 list-decimal list-inside bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-gray-100 dark:border-slate-800">
               <li><strong className="text-slate-900 dark:text-white">Profile & Assessment:</strong> Complete onboarding to calculate baseline score.</li>
               <li><strong className="text-slate-900 dark:text-white">Evidence Engine:</strong> Upload projects, certificates, or GitHub links to earn verified skill badges.</li>
+              <li><strong className="text-slate-900 dark:text-white">Practical Assessment:</strong> Validate your claimed skills before receiving your adaptive roadmap.</li>
               <li><strong className="text-slate-900 dark:text-white">Adaptive Roadmap:</strong> Take dynamic quizzes and verify milestones to increase employability.</li>
               <li><strong className="text-slate-900 dark:text-white">Progress Analytics:</strong> Track real-time market readiness and employability gap closure.</li>
             </ol>
@@ -133,6 +134,7 @@ const Navbar = () => {
                 <Link to="/assessment" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Assessment</Link>
                 <Link to="/recommendations" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Recommendations</Link>
                 <Link to="/evidence" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Evidence Engine</Link>
+                <Link to="/practical-assessment" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Practical Assessment</Link>
                 <Link to="/roadmap" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Adaptive Roadmap</Link>
                 <Link to="/progress" onClick={() => setMobileMenuOpen(false)} className="block px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">Progress Tracker</Link>
               </nav>

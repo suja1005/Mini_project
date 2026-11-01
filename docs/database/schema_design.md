@@ -46,3 +46,19 @@
 
 7. **`progress` & `employability_scores`**:
    - Historical snapshots of employability score trajectory (recalculated over time).
+
+8. **`active_practical_assessments`**:
+   - One active assessment per student, containing the career, private full question records/answer keys, question IDs, and creation time.
+   - Documents are queried by the authenticated `user_id`; clients receive question text/options only.
+
+9. **`practical_assessment_attempts`**:
+   - Immutable per-attempt records with user/career IDs, submitted answers, question history, backend-calculated overall and per-skill scores, review, and timestamp.
+   - History is retained for retakes; only the latest valid attempt drives current skill scores and roadmap priorities.
+
+10. **`student_profiles.practical_skill_results`**:
+   - Latest practical percentage per assessed skill and `practical_assessment_completed_at`.
+   - Self-reported proficiency remains separate and is not promoted to verified status by certificates alone.
+
+11. **`certificate_evidence`**:
+   - Authenticated student certificate metadata (title, issuer, related skills, issue date, credential URL).
+   - Certificate records personalize assessments and appear as submitted evidence, but do not contribute a practical score or independently verify skills.

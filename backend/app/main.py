@@ -13,6 +13,7 @@ from app.api.auth import router as auth_router
 from app.api.profile import router as profile_router
 from app.api.skills import router as skills_router
 from app.api.assessment import router as assessment_router
+from app.api.practical_assessment import router as practical_assessment_router
 from app.api.recommendations import router as recommendation_router
 from app.api.career_analysis import router as career_analysis_router
 from app.api.evidence import router as evidence_router
@@ -52,6 +53,7 @@ app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(profile_router, prefix=settings.API_V1_STR)
 app.include_router(skills_router, prefix=settings.API_V1_STR)
 app.include_router(assessment_router, prefix=settings.API_V1_STR)
+app.include_router(practical_assessment_router, prefix=settings.API_V1_STR)
 app.include_router(recommendation_router, prefix=settings.API_V1_STR)
 app.include_router(career_analysis_router, prefix=settings.API_V1_STR)
 app.include_router(evidence_router, prefix=settings.API_V1_STR)

@@ -21,6 +21,22 @@ from app.schemas.roadmap import (
     VerificationAttemptSchema
 )
 from app.core.security import get_current_user
+
+
+async def require_practical_assessment(current_user: dict = Depends(get_current_user)):
+    user_id = str(current_user.get("_id", current_user.get("id")))
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=503, detail="The roadmap requires an active MongoDB connection.")
+    attempt = await db.practical_assessment_attempts.find_one(
+        {"user_id": user_id}, {"_id": 1}
+    )
+    if attempt is None:
+        raise HTTPException(
+            status_code=403,
+            detail="Complete the practical skill assessment before accessing the adaptive roadmap.",
+        )
+
 from app.services.career_roadmap_service import (
     get_or_initialize_user_roadmap,
     get_topic_learning_material,
@@ -50,7 +66,11 @@ from app.services.roadmap_service import (
     get_verification_history
 )
 
-router = APIRouter(prefix="/roadmap", tags=["Adaptive Employability Roadmap (3-Phase)"])
+router = APIRouter(
+    prefix="/roadmap",
+    tags=["Adaptive Employability Roadmap (3-Phase)"],
+    dependencies=[Depends(require_practical_assessment)],
+)
 
 # ==============================================================================
 # 1. 3-Phase Career Roadmap Endpoints (Primary Adaptive Engine)

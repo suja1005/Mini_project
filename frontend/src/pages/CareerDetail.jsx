@@ -68,6 +68,7 @@ const CareerDetail = () => {
       setLoading(true);
       setErrorMsg(null);
       try {
+        await careerService.selectCareer(activeId);
         const data = await careerService.getCareerAnalysis(activeId);
         if (isMounted) {
           setAnalysis(data);
@@ -303,7 +304,7 @@ const CareerDetail = () => {
         </div>
 
         <Link
-          to="/roadmap"
+          to="/practical-assessment"
           className="shrink-0 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/20 transition-all"
         >
           <span>Generate Plan</span>
@@ -408,7 +409,7 @@ const CareerDetail = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-xs">
           {/* Card 1: Evidence */}
           <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 flex flex-col justify-between hover:border-indigo-500/40 transition-all">
             <div className="space-y-2">
@@ -429,19 +430,39 @@ const CareerDetail = () => {
             </Link>
           </div>
 
-          {/* Card 2: Roadmap */}
+          {/* Card 2: Practical Skill Assessment */}
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 flex flex-col justify-between hover:border-violet-500/40 transition-all">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2 text-violet-400 font-semibold">
+                <Target className="w-5 h-5" />
+                <span className="text-sm">Feature 5: Practical Assessment</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed text-xs">
+                Demonstrate your career-relevant skills through randomized, skill-specific practical questions before roadmap generation.
+              </p>
+            </div>
+            <Link
+              to="/practical-assessment"
+              className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold flex items-center justify-center space-x-1.5 transition-all"
+            >
+              <span>Assess Practical Skills</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {/* Card 3: Roadmap */}
           <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 flex flex-col justify-between hover:border-emerald-500/40 transition-all">
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-emerald-400 font-semibold">
                 <Map className="w-5 h-5" />
-                <span className="text-sm">Feature 5: Adaptive Roadmap</span>
+                <span className="text-sm">Feature 6: Adaptive Roadmap</span>
               </div>
               <p className="text-slate-400 leading-relaxed text-xs">
                 Generate an individualized learning plan with milestones structured dynamically to address your priority gaps.
               </p>
             </div>
             <Link
-              to="/roadmap"
+              to="/practical-assessment"
               className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20 transition-all"
             >
               <span>View Personalized Roadmap</span>
@@ -454,7 +475,7 @@ const CareerDetail = () => {
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-cyan-400 font-semibold">
                 <BarChart3 className="w-5 h-5" />
-                <span className="text-sm">Feature 6: Progress Tracker</span>
+                <span className="text-sm">Feature 7: Progress Tracker</span>
               </div>
               <p className="text-slate-400 leading-relaxed text-xs">
                 Monitor weekly progress, watch your employability score ascend, and track milestones toward career readiness.

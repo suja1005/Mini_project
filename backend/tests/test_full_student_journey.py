@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -15,7 +17,7 @@ async def test_full_student_journey_end_to_end():
     
     with TestClient(app) as client:
         # 1. Register a fresh student
-        email = f"journey_student_{id(app)}@test.com"
+        email = f"journey_student_{uuid.uuid4().hex}@test.com"
         reg_payload = {
             "full_name": "Journey Student",
             "email": email,
@@ -45,6 +47,40 @@ async def test_full_student_journey_end_to_end():
         prof_res = client.put("/api/v1/profile", json=profile_payload, headers=headers)
         assert prof_res.status_code == 200
 
+        selection_res = client.post("/api/v1/career-selection/ai-engineer", headers=headers)
+        assert selection_res.status_code == 200, selection_res.text
+
+        # 3.5 Submit supporting certificate and project evidence; neither alone verifies a skill
+        cert_res = client.post(
+            "/api/v1/evidence/certificate",
+            json={
+                "title": "Python Fundamentals",
+                "issuer": "Test Academy",
+                "skills": ["Python"],
+                "issue_date": "2026-01",
+                "credential_url": "https://example.test/credential"
+            },
+            headers=headers
+        )
+        assert cert_res.status_code == 200, cert_res.text
+        project_res = client.post(
+            "/api/v1/evidence/project",
+            json={
+                "title": "Student Analytics",
+                "description": "A Python project that analyzes student performance data.",
+                "skills_used": ["Python"],
+                "project_type": "Personal",
+                "completion_status": "Completed"
+            },
+            headers=headers
+        )
+        assert project_res.status_code == 200, project_res.text
+        evidence_before_assessment = client.get("/api/v1/evidence", headers=headers).json()
+        assert len(evidence_before_assessment["certificates"]) == 1
+        python_evidence = next(item for item in evidence_before_assessment["skills"] if item["skill"] == "Python")
+        assert python_evidence["status"] == "PARTIALLY VERIFIED"
+        assert client.get("/api/v1/roadmap", headers=headers).status_code == 403
+
         # 3. Request personalized assessment questions
         q_res = client.get("/api/v1/assessment/questions", headers=headers)
         assert q_res.status_code == 200
@@ -58,7 +94,44 @@ async def test_full_student_journey_end_to_end():
         skills_in_q = [q.get("skill") for q in questions]
         assert any(s in ["Artificial Intelligence", "Python", "Machine Learning", "Mathematics"] for s in skills_in_q)
 
-        # 4. Fetch Roadmap: Beginner is AVAILABLE, Intermediate and Advanced are LOCKED
+        # 4. Practical assessment is required before roadmap access
+        practical_q_res = client.post("/api/v1/practical-assessment/questions", headers=headers)
+        assert practical_q_res.status_code == 200, practical_q_res.text
+        practical_questions = practical_q_res.json()
+        assert practical_questions["total_questions"] > 0
+        assert all("correct_answer" not in question for question in practical_questions["questions"])
+
+        user_doc = await db.users.find_one({"email": email})
+        user_id = str(user_doc["_id"])
+        active_practical = await db.active_practical_assessments.find_one({
+            "user_id": user_id,
+            "assessment_id": practical_questions["assessment_id"]
+        })
+        practical_answers = {
+            question["question_id"]: question["correct_answer"]
+            for question in active_practical["full_questions"]
+        }
+        practical_submit = client.post(
+            "/api/v1/practical-assessment/submit",
+            json={"assessment_id": practical_questions["assessment_id"], "answers": practical_answers},
+            headers=headers
+        )
+        assert practical_submit.status_code == 200, practical_submit.text
+        practical_result = practical_submit.json()
+        assert practical_result["overall_score"] == 100
+        assert "review" not in practical_result
+        assert "answers" not in practical_result
+        status_res = client.get("/api/v1/practical-assessment/status", headers=headers)
+        assert status_res.status_code == 200, status_res.text
+        assert status_res.json()["has_completed"] is True
+        history_res = client.get("/api/v1/practical-assessment/history", headers=headers)
+        assert history_res.status_code == 200
+        assert len(history_res.json()) == 1
+        evidence_after_assessment = client.get("/api/v1/evidence", headers=headers).json()
+        python_evidence = next(item for item in evidence_after_assessment["skills"] if item["skill"] == "Python")
+        assert python_evidence["status"] == "VERIFIED"
+
+        # 5. Fetch Roadmap: Beginner is AVAILABLE, Intermediate and Advanced are LOCKED
         rm_res = client.get("/api/v1/roadmap", headers=headers)
         assert rm_res.status_code == 200
         rm = rm_res.json()
@@ -67,20 +140,20 @@ async def test_full_student_journey_end_to_end():
         assert rm["phases"][1]["status"] == "LOCKED"
         assert rm["phases"][2]["status"] == "LOCKED"
 
-        # 5. Direct API call to access locked Phase 2 topic MUST be rejected (403 Forbidden)
+        # 6. Direct API call to access locked Phase 2 topic MUST be rejected (403 Forbidden)
         p2_blocked = client.get("/api/v1/roadmap/topics/phase-2/ai_int_numpy_pandas", headers=headers)
         assert p2_blocked.status_code == 403
 
-        # 6. Direct API call to complete locked Phase 2 topic MUST be rejected (403 Forbidden)
+        # 7. Direct API call to complete locked Phase 2 topic MUST be rejected (403 Forbidden)
         p2_comp_blocked = client.post("/api/v1/roadmap/topics/phase-2/ai_int_numpy_pandas/complete", json={}, headers=headers)
         assert p2_comp_blocked.status_code == 403
 
-        # 7. Opening a Beginner topic does NOT mark it complete
+        # 8. Opening a Beginner topic does NOT mark it complete
         t1_id = rm["phases"][0]["modules"][0]["id"]
         t1_mat = client.get(f"/api/v1/roadmap/topics/phase-1/{t1_id}", headers=headers).json()
         assert t1_mat["completed"] is False
 
-        # 8. Complete all Beginner topics with verified practice answer
+        # 9. Complete all Beginner topics with verified practice answer
         for mod in rm["phases"][0]["modules"]:
             comp_res = client.post(
                 f"/api/v1/roadmap/topics/phase-1/{mod['id']}/complete",
@@ -94,7 +167,7 @@ async def test_full_student_journey_end_to_end():
         rm_recheck = client.get("/api/v1/roadmap", headers=headers).json()
         assert rm_recheck["phases"][0]["all_topics_completed"] is True
 
-        # 9. Generate Phase 1 Assessment
+        # 10. Generate Phase 1 Assessment
         phase_q_res = client.post("/api/v1/roadmap/phases/phase-1/assessment/generate", headers=headers)
         assert phase_q_res.status_code == 200
         phase_quiz = phase_q_res.json()
@@ -102,12 +175,10 @@ async def test_full_student_journey_end_to_end():
         assert phase_quiz["passing_score"] == 80
 
         # Retrieve active quiz answers from test database
-        user_doc = await db.users.find_one({"email": email})
-        user_id = str(user_doc["_id"])
         active_q = await db.active_quizzes.find_one({"user_id": user_id, "phase_id": "phase-1"})
         full_qs = active_q["full_questions"]
 
-        # 10. Simulate 70% failing score (7/10 correct < 80%)
+        # 11. Simulate 70% failing score (7/10 correct < 80%)
         fail_sub = {q["id"]: q["correct_answer"] for q in full_qs[:7]}
         for q in full_qs[7:]:
             fail_sub[q["id"]] = "DEFINITELY_WRONG"
@@ -123,7 +194,7 @@ async def test_full_student_journey_end_to_end():
         rm_fail = client.get("/api/v1/roadmap", headers=headers).json()
         assert rm_fail["phases"][1]["status"] == "LOCKED"
 
-        # 11. Simulate 80% passing score (8/10 correct = 80%)
+        # 12. Simulate 80% passing score (8/10 correct = 80%)
         pass_sub = {q["id"]: q["correct_answer"] for q in full_qs[:8]}
         for q in full_qs[8:]:
             pass_sub[q["id"]] = "WRONG_ANSWER"

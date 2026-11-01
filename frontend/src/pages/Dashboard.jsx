@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { roadmapService } from '../services/roadmapService';
+import { practicalAssessmentService } from '../services/practicalAssessmentService';
 import {
   BookOpen,
   CheckCircle2,
@@ -228,6 +229,7 @@ const Dashboard = () => {
 
   const [summary,  setSummary]  = useState(null);
   const [activity, setActivity] = useState([]);
+  const [practicalStatus, setPracticalStatus] = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
 
@@ -235,12 +237,14 @@ const Dashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const [summaryRes, activityRes] = await Promise.allSettled([
+      const [summaryRes, activityRes, practicalRes] = await Promise.allSettled([
         roadmapService.getDashboardSummary(),
         roadmapService.getRecentActivity(),
+        practicalAssessmentService.getStatus(),
       ]);
       if (summaryRes.status === 'fulfilled')  setSummary(summaryRes.value);
       if (activityRes.status === 'fulfilled') setActivity(activityRes.value || []);
+      if (practicalRes.status === 'fulfilled') setPracticalStatus(practicalRes.value);
     } catch (err) {
       console.error('Dashboard fetch error:', err);
       setError('Failed to load dashboard data. Please refresh.');
@@ -323,14 +327,44 @@ const Dashboard = () => {
 
           {/* Quick navigation shortcut */}
           <Link
-            to="/roadmap"
+            to={practicalStatus?.has_completed ? '/roadmap' : '/practical-assessment'}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600
                        hover:bg-violet-700 text-white text-sm font-bold transition-colors shadow-sm shrink-0"
           >
             <Play className="w-4 h-4 fill-current" />
-            Continue Learning
+            {practicalStatus?.has_completed ? 'Continue Learning' : 'Assess Practical Skills'}
           </Link>
         </div>
+
+        {practicalStatus && !practicalStatus.has_completed && (
+          <section className="flex flex-col gap-4 rounded-2xl border border-violet-200 bg-violet-50 p-5 dark:border-violet-900/50 dark:bg-violet-950/20 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-bold text-slate-900 dark:text-white">Complete your practical assessment to unlock your roadmap</h2>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Questions are generated from your selected career, profile skills, and submitted evidence.</p>
+            </div>
+            <Link to="/practical-assessment" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-xs font-bold text-white">
+              Start assessment <ArrowRight className="h-4 w-4" />
+            </Link>
+          </section>
+        )}
+
+        {practicalStatus?.has_completed && practicalStatus.skill_results?.length > 0 && (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-bold text-slate-900 dark:text-white">Practical skill profile</h2>
+              <Link to="/practical-assessment" className="text-xs font-semibold text-violet-700 dark:text-violet-300">View results / retake</Link>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {practicalStatus.skill_results.map((item) => (
+                <div key={item.skill} className="rounded-xl border border-slate-100 p-3 dark:border-slate-800">
+                  <div className="flex justify-between gap-2 text-xs"><span className="font-semibold text-slate-800 dark:text-slate-200">{item.skill}</span><span className="font-bold text-violet-700 dark:text-violet-300">{item.score}%</span></div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full" style={{ width: `${item.score}%`, backgroundColor: item.score === 50 ? '#8b5cf6' : item.score < 50 ? '#f43f5e' : item.score < 70 ? '#f59e0b' : item.score < 85 ? '#3b82f6' : '#10b981' }} /></div>
+                  <p className="mt-1 text-[10px] text-slate-500">{item.category}{item.verified ? ' · Verified' : ''}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ================================================================== */}
         {/* B. LEARNING ACTIVITY STATS                                          */}

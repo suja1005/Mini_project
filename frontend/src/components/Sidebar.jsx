@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/career-guidance-logo.png';
 import { 
-  Search,
-  MessageSquare,
   LayoutDashboard, 
   UserCheck, 
   ClipboardCheck, 
@@ -17,33 +15,12 @@ import {
   HelpCircle,
   LogOut,
   PanelLeftClose,
-  PanelLeft,
-  X,
-  ExternalLink
+  PanelLeft
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Keyboard shortcut for Cmd+K / Ctrl+K
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setSearchOpen((prev) => !prev);
-      }
-      if (e.key === 'Escape') {
-        setSearchOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: null },
     { to: '/profile', label: 'My Profile', icon: UserCheck, badge: null },
@@ -54,13 +31,10 @@ const Sidebar = () => {
 
   const phase2Items = [
     { to: '/evidence', label: 'Evidence Engine', icon: ShieldCheck, badge: 'NEW', badgeColor: 'bg-indigo-600 text-white' },
+    { to: '/practical-assessment', label: 'Practical Assessment', icon: ClipboardCheck, badge: null },
     { to: '/roadmap', label: 'Adaptive Roadmap', icon: Map, badge: null },
     { to: '/progress', label: 'Progress Tracker', icon: BarChart3, badge: null },
   ];
-
-  const filteredSearchItems = [...navItems, ...phase2Items].filter(item => 
-    item.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const activeLinkClass = 
     "flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-indigo-50/90 text-indigo-700 font-semibold text-sm transition-all border border-indigo-100/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-500/20 shadow-xs";
@@ -85,23 +59,6 @@ const Sidebar = () => {
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <PanelLeft className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Quick Search Bar with shortcut */}
-          <div className="px-1">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100/90 dark:bg-slate-800/60 border border-transparent hover:border-gray-300 dark:hover:border-slate-700 text-slate-500 dark:text-slate-400 text-xs transition-all shadow-inner"
-            >
-              <div className="flex items-center space-x-2">
-                <Search className="w-3.5 h-3.5" />
-                <span className="font-medium">Search</span>
-              </div>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700/80 border border-gray-200 dark:border-slate-600 text-[10px] font-mono font-medium text-slate-500 dark:text-slate-300 shadow-xs">
-                ⌘K
-              </kbd>
             </button>
           </div>
 
@@ -200,63 +157,6 @@ const Sidebar = () => {
         </div>
       </aside>
 
-      {/* Global Quick Search Modal (Cmd+K) */}
-      {searchOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-start justify-center pt-24 px-4">
-          <div className="bg-white dark:bg-[#131b2e] w-full max-w-lg rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-fade-in">
-            <div className="p-3 border-b border-gray-100 dark:border-slate-800 flex items-center space-x-3">
-              <Search className="w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                autoFocus
-                placeholder="Search modules, pages, or features..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none placeholder-slate-400"
-              />
-              <button 
-                onClick={() => setSearchOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="max-h-72 overflow-y-auto p-2 space-y-1">
-              {filteredSearchItems.length > 0 ? (
-                filteredSearchItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.to}
-                      onClick={() => {
-                        navigate(item.to);
-                        setSearchOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Icon className="w-4 h-4 text-indigo-500" />
-                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                          {item.label}
-                        </span>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="p-4 text-center text-xs text-slate-400">
-                  No matching module found.
-                </div>
-              )}
-            </div>
-            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 border-t border-gray-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Press <kbd className="px-1 rounded bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700">ESC</kbd> to exit</span>
-              <span>Quick Navigation</span>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

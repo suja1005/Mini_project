@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.evidence import (
+    CertificateEvidenceCreate,
+    CertificateEvidenceResponse,
     ProjectEvidenceCreate,
     ProjectEvidenceResponse,
     EvidenceOverviewResponse,
@@ -10,6 +12,7 @@ from app.core.security import get_current_user
 from app.services.evidence_service import (
     get_or_create_user_evidence,
     add_project_evidence,
+    add_certificate_evidence,
     get_verified_skills_dict
 )
 
@@ -26,7 +29,18 @@ async def create_project_evidence(
     current_user: dict = Depends(get_current_user)
 ):
     user_id = str(current_user.get("_id", current_user.get("id")))
-    return await add_project_evidence(user_id, project_in.dict())
+    return await add_project_evidence(user_id, project_in.model_dump())
+
+@router.post("/evidence/certificate", response_model=CertificateEvidenceResponse)
+async def create_certificate_evidence(
+    certificate_in: CertificateEvidenceCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = str(current_user.get("_id", current_user.get("id")))
+    try:
+        return await add_certificate_evidence(user_id, certificate_in.model_dump())
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 @router.get("/evidence/{skill_name}", response_model=SkillEvidenceItem)
 async def get_skill_evidence(

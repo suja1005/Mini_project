@@ -11,6 +11,11 @@ export const evidenceService = {
     return response.data;
   },
 
+  async addCertificateEvidence(certificateData) {
+    const response = await api.post('/evidence/certificate', certificateData);
+    return response.data;
+  },
+
   async getSkillEvidence(skillName) {
     const response = await api.get(`/evidence/${encodeURIComponent(skillName)}`);
     return response.data;

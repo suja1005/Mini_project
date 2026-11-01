@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { roadmapService } from '../services/roadmapService';
+import { practicalAssessmentService } from '../services/practicalAssessmentService';
 import ChatbotWidget from '../components/ChatbotWidget';
 import { 
   Map, 
@@ -39,8 +41,10 @@ import {
 } from 'lucide-react';
 
 const Roadmap = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [roadmap, setRoadmap] = useState(null);
+  const [skillRoadmap, setSkillRoadmap] = useState([]);
   const [toastMessage, setToastMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -63,6 +67,12 @@ const Roadmap = () => {
   const fetchRoadmap = async () => {
     setLoading(true);
     try {
+      const practicalStatus = await practicalAssessmentService.getStatus();
+      if (!practicalStatus.has_completed) {
+        navigate('/practical-assessment', { replace: true });
+        return;
+      }
+      setSkillRoadmap(practicalStatus.adaptive_roadmap || []);
       const data = await roadmapService.getRoadmap();
       setRoadmap(data);
     } catch (err) {
@@ -378,6 +388,54 @@ const Roadmap = () => {
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* PRACTICAL-ASSESSMENT-DRIVEN SKILL PLAN                                    */}
+      {/* ========================================================================= */}
+      {skillRoadmap.length > 0 && (
+        <section className="space-y-4 rounded-2xl border border-violet-200 bg-violet-50/60 p-5 dark:border-violet-900/50 dark:bg-violet-950/20 md:p-7">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-violet-700 p-2.5 text-white"><Target className="h-5 w-5" /></div>
+            <div>
+              <h2 className="text-lg font-black text-slate-900 dark:text-white">Your assessment-prioritized skill plan</h2>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Weakest assessed skills appear first. Skills scoring 70% or higher are omitted from beginner remediation and remain in your existing career roadmap.</p>
+            </div>
+          </div>
+          {skillRoadmap.map((skillPlan, skillIndex) => (
+            <details key={skillPlan.skill} open={skillIndex === 0} className="group rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-4">
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-violet-100 text-sm font-black text-violet-700 dark:bg-violet-950 dark:text-violet-300">{skillIndex + 1}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{skillPlan.skill}</span>
+                <span className="text-xs text-slate-500">{skillPlan.score}% · {skillPlan.category}</span>
+                <span className={`ml-auto rounded-full px-2.5 py-1 text-[10px] font-bold ${skillPlan.priority === 'HIGH' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>{skillPlan.priority} PRIORITY</span>
+              </summary>
+              <div className="grid gap-3 border-t border-slate-100 p-4 dark:border-slate-800 lg:grid-cols-3">
+                {skillPlan.phases.map((phase) => (
+                  <article key={phase.level} className="rounded-xl border border-violet-100 p-4 dark:border-violet-900/60">
+                    <h3 className="font-bold text-violet-800 dark:text-violet-300">{phase.level} phase</h3>
+                    <div className="mt-3 space-y-4">
+                      {phase.topics.map((topic) => (
+                        <div key={topic.title} className="border-t border-slate-100 pt-3 first:border-0 first:pt-0 dark:border-slate-800">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white">{topic.title}</h4>
+                          <p className="mt-1 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">{topic.explanation}</p>
+                          <p className="mt-2 text-[11px] text-slate-500"><strong>Example:</strong> {topic.examples[0]}</p>
+                          <p className="mt-2 text-[11px] text-slate-500"><strong>Practice:</strong> {topic.practice_exercises.join(' ')}</p>
+                          {topic.coding_challenges.length > 0 && <p className="mt-2 text-[11px] text-slate-500"><strong>Challenge:</strong> {topic.coding_challenges.join(' ')}</p>}
+                          <p className="mt-2 text-[11px] text-slate-500"><strong>Mini-project:</strong> {topic.mini_project}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {topic.resources.map((resource) => <a key={resource.url} href={resource.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 underline dark:text-violet-300">{resource.title}<ExternalLink className="h-3 w-3" /></a>)}
+                          </div>
+                          <div className="mt-2 rounded-lg bg-emerald-50 p-2 text-[10px] text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"><strong>Complete when:</strong> {topic.completion_requirements.join(' ')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </details>
+          ))}
+        </section>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. THREE PROGRESSIVE PHASES (Sections 3, 4, 5, 6, 7)                     */}

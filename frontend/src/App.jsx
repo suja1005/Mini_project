@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Onboarding from './pages/Onboarding';
 import Assessment from './pages/Assessment';
+import PracticalAssessment from './pages/PracticalAssessment';
 import Recommendations from './pages/Recommendations';
 import CareerDetail from './pages/CareerDetail';
 import Evidence from './pages/Evidence';
@@ -38,6 +39,7 @@ function App() {
               <Route path="/profile" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
+              <Route path="/practical-assessment" element={<ProtectedRoute><PracticalAssessment /></ProtectedRoute>} />
               <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
               <Route path="/career" element={<Navigate to="/career/ai-engineer" replace />} />
               <Route path="/career/:careerId" element={<ProtectedRoute><CareerDetail /></ProtectedRoute>} />
